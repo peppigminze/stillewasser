@@ -29,7 +29,9 @@ function walkable(w, n, occ) {
   return n >= 0 && !w.blocked[n] && n !== w.grid.center && !occ.has(n);
 }
 
-// One step downhill on the moon-distance map; keeps heading when possible.
+// One step downhill on the moon-distance map. Shadows meander: when two
+// downhill steps exist they switch direction instead of walking straight
+// (a straight walker would "ride" a ring forever).
 export function stepToward(w, cur, heading, occ) {
   const here = w.moonDist[cur];
   let best = null;
@@ -38,7 +40,7 @@ export function stepToward(w, cur, heading, occ) {
     if (!walkable(w, n, occ)) return;
     const md = w.moonDist[n];
     if (md < 0 || md >= here) return;
-    const score = dirTurn(heading, dir) * 10 + dir;
+    const score = (heading >= 0 && dir === heading ? 10 : 0) + dirTurn(heading, dir) + dir * 0.01;
     if (score < bestScore) {
       bestScore = score;
       best = { cell: n, dir };

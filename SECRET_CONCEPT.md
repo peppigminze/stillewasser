@@ -29,10 +29,8 @@ angreift: Man wirft Steine ins Wasser, und **Schaden entsteht nur dort, wo sich 
 - **Kettenreaktionen:** Jede besiegte Kreatur sendet eine eigene Todeswelle aus. Die trifft wieder
   auf andere Wellen → neue Wogen → neue Tode → Kette. Ketten werden gezählt und klingen musikalisch
   (pentatonisch aufsteigend).
-- **Resonanz:** Zwei Wellen, die am selben Ort zur selben Zeit entstehen, laufen deckungsgleich und
-  bilden einen ganzen Ring aus Wogen. Wer eine Kreatur mit einem direkt geworfenen Stein erledigt,
-  lässt ihre Todeswelle mit der Steinwelle resonieren → Schockwellen-Ring. Das ist der „Aha“-Trick,
-  den man selbst entdecken kann (ein später Hinweis erklärt ihn).
+- **Steine prallen an Schatten ab:** Man kann nie direkt auf eine Kreatur werfen – nur ins freie Wasser.
+  Kreaturen schlängeln sich im Zickzack zum Mond; Wasserläufer springen 2 Felder weit über Ringe.
 
 Alles ist deterministisch und vollständig vorhersehbar: Das Spiel zeigt, wo jetzt Wogen entstehen
 (mit Schadenszahlen), wo sie im nächsten Zug entstehen, und was jede Kreatur als Nächstes tut.
@@ -49,6 +47,7 @@ Munition. Spielgefühl: Schach × Wellenwanne × Feuerwerk.
 ## Lauf-Struktur (Roguelite)
 
 - 3 Akte (Frühlingsteich, Sommernacht, Herbstnebel), je 2 Teiche + 1 Boss-Teich = 9 Kämpfe.
+  Akt III hat eine Umweltregel: Nebel dämpft die eigenen Wellen (−1 Ring), Schatten beißen fester.
 - Nach jedem Teich: 1 von 3 Gaben wählen — neuer **Stein** (max. 4 im Beutel, jeder mit eigenem
   Wellenprofil und Abklingzeit), **Talisman** (passive Regelbrecher) oder **Mondlicht** (Heilung).
 - Bosse: Krötenmutter, Nebelhecht, Namazu der Mondfresser.
@@ -56,7 +55,7 @@ Munition. Spielgefühl: Schach × Wellenwanne × Feuerwerk.
 
 ## Inhalte (V1)
 
-- **Steine:** Kiesel, Flussstein (schwerer Aufschlag), Mondstein (weite Welle), Schattenstein (dunkle Welle),
+- **Steine:** Kiesel, Flussstein (erster Ring Stärke 2), Mondstein (weite Welle), Schattenstein (dunkle Welle),
   Echostein (zweite Welle zwei Züge später), Zwillingsstein (gespiegelt am Mond), Brandungsstein
   (starker kurzer Ring), Tautropfen (Gratiswurf), Strudelstein (wechselnde Vorzeichen).
 - **Kreaturen:** Tintling, Wasserläufer (springt über Wellen, weil er 2 Felder zieht), Unke (sendet

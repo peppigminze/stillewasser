@@ -12,11 +12,15 @@ export function getMods(run, content) {
   if (keeper) add(keeper.mods);
   for (const t of run.talismans) add(content.talismans[t] && content.talismans[t].effects);
   for (let i = 1; i <= (run.phase || 0); i++) add(content.phases[i] && content.phases[i].mods);
+  const act = content.acts[run.act];
+  if (act && !(run.tutorial && run.act === 0 && run.step === 0)) add(act.mods);
   return m;
 }
 
-// Extend a profile by n rings, continuing an alternating sign pattern if present.
+// Extend a profile by n rings (continuing an alternating sign pattern), or
+// trim it for negative n (never below 2 entries).
 export function extendProfile(profile, n) {
+  if (n < 0) return profile.slice(0, Math.max(2, profile.length + n));
   const out = profile.slice();
   for (let i = 0; i < n; i++) {
     const a = out[out.length - 1];
@@ -28,7 +32,7 @@ export function extendProfile(profile, n) {
 }
 
 export function stoneProfile(stone, mods) {
-  return extendProfile(stone.profile, Math.max(0, mods.stoneRange || 0));
+  return extendProfile(stone.profile, mods.stoneRange || 0);
 }
 
 export function stoneCooldown(stone, mods) {
@@ -38,10 +42,10 @@ export function stoneCooldown(stone, mods) {
 export function deathProfile(def, rules, mods) {
   const prof = (def.deathProfile || rules.deathProfile).slice();
   if (mods.deathBoost && prof.length > 1) prof[1] += mods.deathBoost;
-  return extendProfile(prof, Math.max(0, mods.deathRange || 0));
+  return extendProfile(prof, mods.deathRange || 0);
 }
 
 export function throwsForTurn(run, content, mods, turn) {
   const base = content.rules.throwsPerTurn + (mods.throws || 0);
-  return Math.max(1, base + (turn === 0 ? mods.firstTurnThrows || 0 : 0));
+  return Math.max(1, base + (turn < 3 ? mods.earlyThrows || 0 : 0));
 }

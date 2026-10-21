@@ -1,8 +1,8 @@
 [
   { "id": 0, "name": "Neumond", "desc": "Die Grundschwierigkeit.", "mods": {} },
-  { "id": 1, "name": "Sichel", "desc": "+20 % Kreaturen in jedem Teich.", "mods": { "budgetMul": 0.2 } },
+  { "id": 1, "name": "Sichel", "desc": "Gaben bieten eine Option weniger.", "mods": { "rewardChoices": -1 } },
   { "id": 2, "name": "Halbmond", "desc": "Du beginnst mit 2 Licht weniger.", "mods": { "startLight": -2 } },
   { "id": 3, "name": "Zunehmend", "desc": "Bosse haben 30 % mehr Leben.", "mods": { "bossHpMul": 0.3 } },
-  { "id": 4, "name": "Dreiviertel", "desc": "Gaben bieten eine Option weniger.", "mods": { "rewardChoices": -1 } },
-  { "id": 5, "name": "Vollmond", "desc": "+20 % Kreaturen und Bisse am Mond kosten +1 Licht.", "mods": { "budgetMul": 0.2, "biteBonus": 1 } }
+  { "id": 4, "name": "Dreiviertel", "desc": "+25 % Kreaturen, Bosse noch einmal +20 % Leben.", "mods": { "budgetMul": 0.25, "bossHpMul": 0.2 } },
+  { "id": 5, "name": "Vollmond", "desc": "Der Mond ist verletzlich: −2 maximales Licht.", "mods": { "maxLight": -2 } }
 ]

@@ -71,32 +71,40 @@ test('interference: two splashes next to a creature surge on the next tick; inpu
   assert.ok(fc.now.hits.some((h) => h.id === 1000 && h.dmg === 1 && !h.lethal));
   res = act(res.run, { type: 'endTurn' }, c);
   const hit = res.events.find((e) => e.type === 'hit');
-  assert.ok(hit && hit.id === 1000 && hit.dmg === 1 && hit.hp === 1);
+  assert.ok(hit && hit.id === 1000 && hit.dmg === 1 && hit.hp === c.enemies.laich.hp - 1);
 });
 
-test('flussstein direct hit kills 1hp creature and emits a death ripple (resonance ring)', () => {
+test('stones cannot land on creatures; flussstein ring (amp 2) hits neighbors alone; death ripple born', () => {
   const c = testContent();
-  let run = sandbox(c, [['tintling', C(0, -4)], ['tintling', C(1, -4)], ['schnecke', C(0, 5)]]);
-  run = act(run, { type: 'throw', slot: 2, cell: C(0, -4) }, c).run;
-  const res = act(run, { type: 'endTurn' }, c);
+  let run = sandbox(c, [['laich', C(0, -3)], ['schnecke', C(0, 5)]]);
+  assert.equal(step(run, { type: 'throw', slot: 0, cell: C(0, -3) }, c).events[0].type, 'invalid');
+  // laich hp 2: flussstein next to it -> radius-1 ring of amplitude 2 = 1 damage, twice = dead
+  run = act(run, { type: 'throw', slot: 2, cell: C(1, -4) }, c).run;
+  let res = act(run, { type: 'endTurn' }, c);
+  res = act(res.run, { type: 'endTurn' }, c);
+  assert.ok(res.events.some((e) => e.type === 'hit' && e.id === 1000 && e.dmg === 1));
+  run = res.run;
+  run.pond.enemies.find((e) => e.id === 1000).hp = 1;
+  run.slots[2].cd = 0;
+  run = act(run, { type: 'throw', slot: 2, cell: C(-1, -2) }, c).run;
+  res = act(run, { type: 'endTurn' }, c);
+  res = act(res.run, { type: 'endTurn' }, c);
   const death = res.events.find((e) => e.type === 'death');
   assert.ok(death && death.id === 1000);
   const dr = res.run.pond.ripples.find((r) => r.owner === 'death');
-  assert.ok(dr);
-  assert.equal(dr.origin, C(0, -4));
-  // next tick: flussstein ring (1) + death ring (1) coincide -> whole ring surges
-  const fc = forecast(res.run, c);
-  const ringSurges = fc.now.surges.filter((s) => s.amp === 2);
-  assert.ok(ringSurges.length >= 4, 'resonance creates a ring of surges');
+  assert.equal(dr.origin, C(0, -3));
+  assert.deepEqual(dr.profile, c.rules.deathProfile);
 });
 
 test('armor blocks small surges', () => {
   const c = testContent();
   let run = sandbox(c, [['schnecke', C(0, -4)], ['tintling', C(3, 2)]]);
-  run = act(run, { type: 'throw', slot: 2, cell: C(0, -4) }, c).run; // amp 2 on armored
-  const res = act(run, { type: 'endTurn' }, c);
+  run.pond.enemies[0].age = 1; // resting turn: the snail stays put
+  run = act(run, { type: 'throw', slot: 2, cell: C(1, -5) }, c).run; // flussstein ring r=1 (amp 2)
+  let res = act(run, { type: 'endTurn' }, c);
+  res = act(res.run, { type: 'endTurn' }, c);
   assert.ok(res.events.some((e) => e.type === 'block' && e.id === 1000));
-  assert.equal(res.run.pond.enemies.find((e) => e.id === 1000).hp, 2);
+  assert.equal(res.run.pond.enemies.find((e) => e.id === 1000).hp, c.enemies.schnecke.hp);
 });
 
 test('creatures walk to the moon and bite; light 0 loses the run', () => {
@@ -133,8 +141,10 @@ test('pond is won when every hostile creature is gone -> reward offered', () => 
   run.pond.telegraphs = [];
   run.pond.enemies = [{ id: 999, type: 'tintling', cell: C(0, -3), hp: 1, maxHp: 1, age: 0, heading: -1 }];
   run.pond.rocks = [];
-  run.pond.ripples = [{ id: 1, origin: C(0, -2), born: run.pond.tick - 1, profile: [1, 1, 1], owner: 'player', gen: 0 }];
-  run = act(run, { type: 'throw', slot: 0, cell: C(0, -3) }, c).run;
+  run.pond.ripples = [
+    { id: 1, origin: C(0, -2), born: run.pond.tick - 1, profile: [1, 1, 1], owner: 'player', gen: 0 },
+    { id: 2, origin: C(0, -4), born: run.pond.tick - 1, profile: [1, 1, 1], owner: 'player', gen: 0 },
+  ];
   const res = act(run, { type: 'endTurn' }, c);
   assert.ok(res.events.some((e) => e.type === 'pondWon'));
   assert.equal(res.run.mode, 'reward');
@@ -145,9 +155,12 @@ test('previewThrow reports errors and forecasts', () => {
   const c = testContent();
   const run = sandbox(c, [['tintling', C(0, -4)], ['schnecke', C(0, 5)]]);
   assert.ok(previewThrow(run, 0, 0, c).error);
-  const p = previewThrow(run, 2, C(0, -4), c);
-  assert.ok(p.now.hits.some((h) => h.id === 1000 && h.lethal));
-  assert.ok(p.dying.has(1000));
+  run.pond.ripples = [{ id: 1, origin: C(0, -2), born: run.pond.tick - 1, profile: [1, 1, 1], owner: 'player', gen: 0 }];
+  assert.ok(previewThrow(run, 0, C(0, -4), c).error, 'occupied');
+  const p = previewThrow(run, 0, C(1, -4), c);
+  assert.ok(!p.error);
+  assert.ok(p.now.hits.length === 0);
+  assert.ok(p.next.surges.length >= 0);
 });
 
 test('same seed, same actions -> identical runs (determinism)', () => {

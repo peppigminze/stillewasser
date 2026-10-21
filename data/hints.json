@@ -27,10 +27,6 @@
     "title": "Gaben",
     "text": "Nach jedem Teich wählst du eine Gabe: einen neuen Stein (max. 4), einen Talisman, der Regeln bricht, oder Mondlicht."
   },
-  "resonance": {
-    "title": "Resonanz",
-    "text": "Stirbt ein Schatten genau dort, wo du in diesem Zug einen Stein geworfen hast, laufen beide Wellen deckungsgleich: ein ganzer Ring aus Wogen."
-  },
   "boss": {
     "title": "Ein großer Schatten",
     "text": "Bosse halten viel aus. Kreuze mehrere Wellen gleichzeitig (Stärke 3+) und nutze die Todeswellen ihrer Diener."
@@ -42,5 +38,17 @@
   "tip": {
     "title": "Tipp-Knopf",
     "text": "Der ?-Knopf oben rechts schlägt einen Wurf vor. Kein Zwang – aber gut zum Lernen."
+  },
+  "strider": {
+    "title": "Wasserläufer",
+    "text": "Sie ziehen 2 Felder pro Zug und springen dabei über Ringe hinweg. Plane eine Woge dort, wo sie landen – nicht dort, wo sie gerade sind."
+  },
+  "fog": {
+    "title": "Herbstnebel",
+    "text": "In Akt III dämpft der Nebel deine Wellen (einen Ring kürzer) und Schatten beißen fester. Rechne knapper."
+  },
+  "occupied": {
+    "title": "Steine prallen ab",
+    "text": "Auf einem Schatten kann kein Stein landen. Wirf ins freie Wasser und lass die Ringe zu ihm laufen."
   }
 }

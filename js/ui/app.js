@@ -603,7 +603,7 @@ export function createApp(content) {
     const actStart = res.events.find((e) => e.type === 'actStart');
     if (actStart) {
       const act = content.acts[ui.run.act];
-      banner(act.sub, act.name, 'Ein neuer Teich, eine neue Nacht');
+      banner(act.sub, act.name, act.rule || 'Eine neue Nacht beginnt');
       setTimeout(() => pondBanner(), 2300);
     } else pondBanner();
     onStateChange();

@@ -49,7 +49,7 @@ export function howtoScreen() {
   return `<div class="panel"><div class="sub">Anleitung</div><h2>Wie Wasser denkt</h2><span class="brush"></span>
     <ol class="howto">
       <li><b>Der Mond</b> liegt in der Mitte. Schatten kriechen vom Ufer heran und beißen ihm <b>Licht</b> ab. Licht 0 = Lauf vorbei.</li>
-      <li>Du greifst nie direkt an. Du <b>wirfst Steine</b> (meist 2 pro Zug). Jeder Stein schlägt eine Welle, die jeden Zug um <b>einen Ring</b> wächst. Felsen werfen Wellenschatten.</li>
+      <li>Du greifst nie direkt an. Du <b>wirfst Steine</b> (meist 2 pro Zug). Jeder Stein schlägt eine Welle, die jeden Zug um <b>einen Ring</b> wächst. Steine landen nur im freien Wasser, nie auf Schatten. Felsen werfen Wellenschatten.</li>
       <li>Eine Welle allein ist harmlos. <b>Wo sich Wellen überlagern</b>, addieren sich ihre Stärken. Ab Stärke 2 entsteht eine <b style="color:var(--gold)">Woge</b>: Schaden = Stärke − 1.</li>
       <li><b style="color:var(--violet)">Dunkle Wellen</b> (−1) löschen helle aus. Zwei dunkle zusammen: ein <b style="color:var(--violet)">Sog</b> – trifft ebenso.</li>
       <li>Jeder besiegte Schatten sendet eine <b>Todeswelle</b>. Treffen die auf andere Wellen, entstehen <b>Ketten</b>.</li>

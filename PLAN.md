@@ -10,7 +10,7 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
 - [x] **M2 — Kernschleife**: Kompletter Einzelkampf: Gegner-Absichten, Bewegung, Bisse, Spawns,
       Sieg/Niederlage, Vorschau (jetzt/nächster Zug), Rückgängig, Abklingzeiten, Touch + Tastatur.
 - [x] **M3 — Laufstruktur**: 3 Akte × 3 Teiche, Bosse, Gaben-Auswahl, Speicherstand + Fortsetzen.
-- [ ] **M4 — Inhalt & Simulation**: Alle V1-Steine/Kreaturen/Talismane, Simulations-Bot (Node),
+- [x] **M4 — Inhalt & Simulation**: Alle V1-Steine/Kreaturen/Talismane, Simulations-Bot (Node),
       Balance-Report, Balance-Anpassungen (BALANCE.md).
 - [ ] **M5 — Meta**: Perlen, Schrein (Freischaltungen), Hüter, Schwierigkeitsstufen, Chronik/Statistik, Einstellungen.
 - [ ] **M6 — Gefühl**: Juice-Pass: Partikel, Tweens, Screenshake, Kettenzähler, WebAudio-Synthese, Titel-Animation.
@@ -31,6 +31,11 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
   Palettenwechsel, Speicherstand nach jeder Aktion (`core/save.js` validiert defensiv, `ui/storage.js` fällt auf
   Memory zurück), „Fortsetzen“ im Titel. 31 Tests (u. a. kompletter Lauf bis Sieg, Save-Roundtrip, korrupte Saves).
 
+- **M4 erledigt:** `core/ai.js` (random/brute/greedy/planner + Gaben-Heuristik + autoplay), `sim/sim.mjs`
+  (Worker-Threads, Report mit Siegquote, Schwierigkeitskurve, Inhalte-Nutzung, Hüter, Mondphasen).
+  Balance in 9 Iterationen (siehe BALANCE.md): neue Regel „keine Würfe auf Schatten“, Zickzack-Bewegung,
+  kürzere Wellen, Akt-III-Nebel. Endstand: brute 0 %, greedy 49 %, planner 81 %. 47 Tests.
+
 ## Nächster Schritt
 
-M4: `core/ai.js` (Strategien random/brute/greedy/planner), `sim/sim.mjs` (tausende Läufe, Worker-Threads), Report → BALANCE.md, Balance anpassen.
+M5: `core/meta.js` (Perlen, Freischaltungen, Statistiken, Sanitizing), Schrein-, Chronik-, Hüter-/Phasenwahl- und Einstellungs-Screens.

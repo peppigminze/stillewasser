@@ -6,7 +6,7 @@ export const CONTENT_FILES = ['rules', 'stones', 'enemies', 'talismans', 'acts',
 export const ACTIONS = ['move', 'emit', 'hatch', 'dash', 'wander', 'rest'];
 
 export const MOD_KEYS = [
-  'throws', 'firstTurnThrows', 'deathRange', 'deathBoost', 'shieldPerPond', 'healPerPond',
+  'throws', 'earlyThrows', 'deathRange', 'deathBoost', 'shieldPerPond', 'healPerPond',
   'maxLight', 'bigSurgeBonus', 'sogBonus', 'stoneRange', 'cooldown', 'chainHeal',
   'rewardChoices', 'budgetMul', 'startLight', 'bossHpMul', 'biteBonus',
 ];
@@ -81,6 +81,7 @@ export function validateContent(c) {
   if (!Array.isArray(c.acts) || !c.acts.length) err('acts: leer');
   c.acts.forEach((act, ai) => {
     if (!act.ponds || !act.ponds.length) err(`act ${ai}: keine Teiche`);
+    for (const m of Object.keys(act.mods || {})) if (!MOD_KEYS.includes(m)) err(`act ${act.id}: unbekannter Mod ${m}`);
     act.ponds.forEach((p, pi) => {
       const where = `act ${act.id} pond ${pi}`;
       for (const t of Object.keys(p.pool || {})) if (!c.enemies[t]) err(`${where}: Kreatur ${t} unbekannt`);

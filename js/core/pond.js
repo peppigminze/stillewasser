@@ -187,6 +187,7 @@ export function throwError(d, slotIdx, cell, content) {
   if (!(cell >= 0 && cell < grid.size)) return 'Außerhalb des Teichs.';
   if (cell === grid.center) return 'Der Mond ist kein Ziel.';
   if (pond.rocks.includes(cell)) return 'Dort liegt ein Fels.';
+  if (pond.enemies.some((e) => e.cell === cell)) return 'Auf Schatten prallen Steine ab – wirf ins freie Wasser.';
   if (pond.ripples.some((r) => r.owner === 'player' && r.origin === cell && r.born === pond.tick)) {
     return 'Hier liegt in diesem Zug schon ein Stein.';
   }
@@ -210,7 +211,8 @@ export function applyThrow(d, slotIdx, cell, content, ev) {
   if (stone.mirror) {
     const m = mirrorCell(buildGrid(pond.radius), cell);
     const taken = pond.ripples.some((r) => r.owner === 'player' && r.origin === m && r.born === pond.tick);
-    if (m >= 0 && m !== cell && !pond.rocks.includes(m) && !taken) {
+    const occupied = pond.enemies.some((e) => e.cell === m);
+    if (m >= 0 && m !== cell && !pond.rocks.includes(m) && !taken && !occupied) {
       add(m, pond.tick);
       mirror = m;
     }

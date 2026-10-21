@@ -21,7 +21,7 @@ test('new run: keeper kit, light, first pond generated deterministically', () =>
   const b = newRun({ seed: 'abc', keeper: 'moench' }, content);
   assert.deepEqual(a, b);
   assert.equal(a.slots.length, 3);
-  assert.equal(a.light, 10);
+  assert.equal(a.light, content.keepers.moench.light);
   assert.equal(a.mode, 'pond');
   assert.ok(a.pond.total > 0);
   assert.ok(a.pond.enemies.length > 0);
@@ -69,14 +69,15 @@ test('maxLight talismans adjust light; heal caps at max', () => {
   let run = newRun({ seed: 'ml', keeper: 'moench' }, content);
   run = winPond(run).run;
   run.reward.options = [{ kind: 'talisman', id: 'silberschale' }];
+  const base = content.keepers.moench.light;
   run = step(run, { type: 'pickReward', index: 0 }, content).run;
-  assert.equal(run.maxLight, 13);
-  assert.equal(run.light, 13);
+  assert.equal(run.maxLight, base + 3);
+  assert.equal(run.light, base + 3);
   run = winPond(run).run;
   run.reward.options = [{ kind: 'talisman', id: 'kraniche' }];
   run = step(run, { type: 'pickReward', index: 0 }, content).run;
-  assert.equal(run.maxLight, 10);
-  assert.equal(run.light, 10);
+  assert.equal(run.maxLight, base + 1);
+  assert.equal(run.light, base + 1);
   assert.equal(getMods(run, content).throws, 1);
   assert.equal(run.pond.throwsLeft, 3);
 });
