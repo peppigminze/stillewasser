@@ -46,10 +46,12 @@ export function createRenderer(canvas, content) {
     const R = grid.radius;
     const unitsW = 1.5 * 2 * R + 2 + 0.6;
     const unitsH = Math.sqrt(3) * (2 * R + 1) + 0.6;
-    const availW = w - 12;
+    const left = insets.left || 0;
+    const right = insets.right || 0;
+    const availW = Math.max(120, w - 12 - left - right);
     const availH = Math.max(120, h - insets.top - insets.bottom);
     S = Math.max(8, Math.min(availW / unitsW, availH / unitsH));
-    CX = w / 2;
+    CX = left + 6 + availW / 2;
     CY = insets.top + availH / 2;
     centers = unit.map((p) => ({ x: CX + p.x * S, y: CY + p.y * S }));
     bgKey = '';

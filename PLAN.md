@@ -14,7 +14,7 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
       Balance-Report, Balance-Anpassungen (BALANCE.md).
 - [x] **M5 — Meta**: Perlen, Schrein (Freischaltungen), Hüter, Schwierigkeitsstufen, Chronik/Statistik, Einstellungen.
 - [x] **M6 — Gefühl**: Juice-Pass: Partikel, Tweens, Screenshake, Kettenzähler, WebAudio-Synthese, Titel-Animation.
-- [ ] **M7 — Einstieg**: Tutorial/Hinweise (erste 60 s), Tipp-Knopf, Täglicher Teich, Mobile-Feinschliff.
+- [x] **M7 — Einstieg**: Tutorial/Hinweise (erste 60 s), Tipp-Knopf, Täglicher Teich, Mobile-Feinschliff.
 - [ ] **M8 — Abschluss**: Polish, Code-Review, Edge-Cases, Ladezeit, Speicherstand-Robustheit, README.
 
 ## Protokoll
@@ -46,6 +46,11 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
   Kompressor, Rate-Limits). Juice: Steinflug im Bogen, Wogen gestaffelt, Bloom beim Teichsieg, Tinten-Wipe
   zwischen Teichen, Slot-„bereit“-Puls, Licht-Pips bei Heilung, Vibration, Animationsbeschleunigung per Tipp.
 
+- **M7 erledigt:** Kontextuelle Hinweise (einmalig, abschaltbar, eins nach dem anderen), Lernteich mit
+  vorgeschlagenen Feldern in den ersten Zügen, Tipp-Knopf/T-Taste (planner-Vorschlag), Täglicher Teich
+  (Seed = Datum, eigener Bestwert, ohne Tipps), Schutzabfrage vor Überschreiben eines Spielstands,
+  Querformat-Layout (Steine rechts), kompakter Coach auf kleinen Handys.
+
 ## Nächster Schritt
 
-M7: Hinweis-System (data/hints.json, kontextuell, einmalig), Tipp-Knopf (ai.suggestThrow), Täglicher Teich, Mobile-Feinschliff.
+M8: Polish-Durchgang (Game Feel, Edge-Cases, Ladezeit, Speicherstand-Robustheit), Code-Review des ganzen Projekts, README, BACKLOG, finaler Push.

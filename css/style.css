@@ -141,7 +141,7 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 /* -------------------------------------------------------- coach */
 .coach {
-  position: absolute; left: 50%; transform: translateX(-50%); z-index: 8;
+  position: absolute; left: 50%; transform: translateX(-50%); z-index: 30;
   bottom: calc(140px + var(--safe-b)); width: min(92vw, 440px);
   background: linear-gradient(180deg, #1b2250, #11163a); border: 1px solid rgba(255,210,122,.45);
   border-radius: 14px; padding: 12px 14px 10px; box-shadow: 0 16px 48px rgba(0,0,0,.5);
@@ -297,3 +297,35 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 @keyframes wipe { 0% { opacity: 0; transform: scale(.2); } 45%, 55% { opacity: 1; transform: scale(2.4); } 100% { opacity: 0; transform: scale(2.6); } }
 .light .pip.gain { animation: pip-gain .7s ease; }
 @keyframes pip-gain { 0% { transform: scale(2); background: var(--teal); box-shadow: 0 0 14px var(--teal); } }
+@media (max-width: 480px) {
+  .coach { font-size: 13px; padding: 10px 12px 8px; bottom: calc(118px + var(--safe-b)); }
+  .coach h4 { font-size: 15px; }
+  .info { font-size: 12px; bottom: calc(118px + var(--safe-b)); }
+}
+
+/* landscape phones: stones in a column on the right, compact HUD */
+@media (orientation: landscape) and (max-height: 560px) {
+  .hud { padding: calc(4px + var(--safe-t)) 10px 2px; right: 150px; grid-template-columns: auto 1fr auto; }
+  .where { font-size: 13px; }
+  .where small { display: inline; margin-right: 6px; }
+  .progress { font-size: 11px; }
+  .light .pip { width: 9px; height: 9px; }
+  .icon-btn { width: 34px; height: 34px; font-size: 16px; }
+  .bar { top: 0; left: auto; width: 150px; display: flex; flex-direction: column; justify-content: center;
+    padding: calc(6px + var(--safe-t)) calc(8px + env(safe-area-inset-right, 0px)) calc(6px + var(--safe-b)) 6px;
+    background: linear-gradient(to left, rgba(7,10,24,.92) 70%, rgba(7,10,24,0)); }
+  .bar-row { flex-direction: column; gap: 6px; max-width: none; }
+  .slots { flex-direction: column; gap: 4px; flex: none; }
+  .slot { max-width: none; height: 48px; flex-direction: row; justify-content: flex-start; gap: 8px; padding: 4px 8px; }
+  .slot .g { font-size: 18px; height: auto; }
+  .slot .prof { display: none; }
+  .slot .n { font-size: 12px; }
+  .slot .key { display: none; }
+  .bar-actions { flex-direction: row; }
+  .bar-actions .undo { height: 48px; width: 44px; }
+  .end-btn { height: 48px; min-width: 0; flex: 1; font-size: 13px; gap: 3px; }
+  .talisman-row { justify-content: flex-start; }
+  .info { left: calc((100% - 150px) / 2); bottom: 8px; max-width: min(70vw, 420px); }
+  .coach { left: calc((100% - 150px) / 2); bottom: 8px; width: min(70vw, 440px); }
+  .toast { left: calc((100% - 150px) / 2); top: 50px; }
+}

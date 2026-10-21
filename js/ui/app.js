@@ -13,10 +13,11 @@ import { serializeRun, deserializeRun } from '../core/save.js';
 import { KEYS, loadJSON, saveJSON, remove, persistent } from './storage.js';
 import { sanitizeMeta, poolFor, defaultPool, isUnlocked, buy, applyRunEnd, markSeen, affordable, defaultMeta } from '../core/meta.js';
 import { drawCreature } from './render.js';
+import { suggestThrow } from '../core/ai.js';
 
 const esc = screens.esc;
 // features that are switched on milestone by milestone
-const FEATURES = { daily: false, shrine: true, codex: true, settings: true, tip: false };
+const FEATURES = { daily: true, shrine: true, codex: true, settings: true, tip: true };
 // screens that cannot be closed with Esc
 const MODAL = new Set(['title', 'runEnd', 'reward']);
 
@@ -95,9 +96,11 @@ export function createApp(content) {
     const w = window.innerWidth;
     const h = window.innerHeight;
     const inGame = !$('hud').hidden;
+    const side = inGame && getComputedStyle($('bar')).flexDirection === 'column';
     const top = inGame ? $('hud').offsetHeight + 2 : 16;
-    const bottom = inGame ? $('bar').offsetHeight + 4 : 16;
-    renderer.resize(w, h, Math.min(2, window.devicePixelRatio || 1), { top, bottom });
+    const bottom = inGame && !side ? $('bar').offsetHeight + 4 : 12;
+    const right = side ? $('bar').offsetWidth + 4 : 0;
+    renderer.resize(w, h, Math.min(2, window.devicePixelRatio || 1), { top, bottom, right });
   }
   window.addEventListener('resize', resize);
 
@@ -144,6 +147,8 @@ export function createApp(content) {
     scene.moonLight = run.light / Math.max(1, run.maxLight);
     syncActors(run.pond);
     seen('enemies', [...new Set(run.pond.enemies.map((e) => e.type))]);
+    if (!ui.busy) tutorialTip();
+    if (run.pond.enemies.some((e) => e.type === 'laeufer')) hint('strider');
     seen('stones', run.slots.map((s) => s.stone));
     seen('talismans', run.talismans);
     refreshForecast();
@@ -178,6 +183,8 @@ export function createApp(content) {
     }
     scene.forecast = forecast(run, content);
     updateInfo();
+    const fc = scene.forecast;
+    if (fc && (fc.now.hits.some((h) => h.dmg > 0) || (fc.next && fc.next.hits.some((h) => h.dmg > 0)))) hint('surgeMarkers');
   }
 
   function setFocus(cell) {
@@ -330,6 +337,82 @@ export function createApp(content) {
     if (pond.kind === 'tutorial') banner('Lernteich', act.name, 'Hüte den Mond');
     else if (pond.kind === 'boss') banner(act.sub, content.enemies[pond.boss].name, 'Boss', true);
     else banner(act.sub, act.name, `Teich ${run.step + 1}`);
+    setTimeout(() => {
+      if (!ui.run || ui.run !== run) return;
+      if (pond.kind === 'tutorial') hint('start');
+      if (pond.kind === 'boss') hint('boss');
+      if (content.acts[run.act].rule && run.step === 0) hint('fog');
+      if (!run.tutorial || run.act > 0 || run.step > 0) hint('tip');
+    }, 1500);
+  }
+
+  // ------------------------------------------------------------- hints
+  const hintQueue = [];
+  function hint(id) {
+    if (!ui.meta.settings.tips || !content.hints[id] || ui.meta.seen.hints.includes(id) || hintQueue.includes(id)) return;
+    if (ui.run && ui.run.daily) return;
+    if (hintQueue.length) return; // one at a time; triggers fire again later
+    hintQueue.push(id);
+    showHint();
+  }
+
+  function showHint() {
+    const el = $('coach');
+    if (!hintQueue.length) {
+      el.hidden = true;
+      return;
+    }
+    const h = content.hints[hintQueue[0]];
+    el.classList.toggle('top', ui.stack.length > 0);
+    el.innerHTML = `<h4>${esc(h.title)}</h4><p>${esc(h.text)}</p>
+      <div class="coach-foot"><span></span>
+      <span><button data-coach="off">Hinweise aus</button> <button data-coach="ok">Verstanden</button></span></div>`;
+    el.hidden = false;
+  }
+
+  $('coach').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-coach]');
+    if (!b) return;
+    if (b.dataset.coach === 'off') {
+      ui.meta = { ...ui.meta, settings: { ...ui.meta.settings, tips: false } };
+      saveMeta();
+      applySettings();
+      hintQueue.length = 0;
+      showHint();
+      toast('Hinweise ausgeschaltet (Einstellungen).', true);
+      return;
+    }
+    const id = hintQueue.shift();
+    seen('hints', [id]);
+    showHint();
+  });
+
+  // In the learning pond the first throws are suggested on the water.
+  function tutorialTip() {
+    const run = ui.run;
+    scene.tip = -1;
+    if (!run || run.mode !== 'pond' || run.pond.kind !== 'tutorial' || run.pond.turn > 2 || !ui.meta.settings.tips) return;
+    const s = suggestThrow(run, content);
+    if (s) {
+      scene.tip = s.cell;
+      if (run.slots[s.slot] && run.slots[s.slot].cd === 0) ui.slot = s.slot;
+    }
+  }
+
+  function useTip() {
+    if (!playable() || ui.run.daily) return;
+    const s = suggestThrow(ui.run, content);
+    if (!s) {
+      toast('Kein sinnvoller Wurf – beende den Zug.', true);
+      return;
+    }
+    ui.slot = s.slot;
+    scene.tip = s.cell;
+    ui.lastType = ui.lastType === 'mouse' ? 'mouse' : 'touch';
+    scene.focus = -1;
+    setFocus(s.cell);
+    renderHud();
+    toast(`Tipp: ${content.stones[ui.run.slots[s.slot].stone].name} auf das markierte Feld`, true);
   }
 
   // ------------------------------------------------------------ actions
@@ -341,6 +424,7 @@ export function createApp(content) {
       toast(ev.reason);
       fx.addShake(2);
       audio.sfx.deny();
+      if (ui.run.pond.enemies.some((e) => e.cell === cell)) hint('occupied');
       return;
     }
     ui.run = res.run;
@@ -358,8 +442,11 @@ export function createApp(content) {
     };
     land(cell, ev.ripples.filter((id, i) => i === 0 || ev.mirror < 0 || i > 1));
     if (ev.mirror >= 0) land(ev.mirror, [ev.ripples[1]]);
+    scene.tip = -1;
+    hint('afterFirstThrow');
+    if (ui.run.slots[ev.slot].cd > 1) hint('cooldown');
     autoSelectSlot();
-    scene.focus = ui.lastType === 'mouse' || ui.lastType === 'key' ? cell : -1;
+    scene.focus = ui.lastType === 'key' ? cell : -1;
     syncScene();
     onStateChange();
   }
@@ -509,6 +596,10 @@ export function createApp(content) {
     }
     if (movers.length) await tween(300, (k) => { for (const a of movers) a.u = k; }, (k) => k * (2 - k));
     else if (acted) await wait(250);
+    if (evs.some((e) => e.type === 'death' && e.hostile)) hint('firstKill');
+    if (evs.some((e) => e.type === 'bite' && !e.blocked)) hint('firstBite');
+    if (evs.some((e) => e.type === 'emit')) hint('darkRipple');
+    if (res.run.pond && res.run.pond.enemies.some((e) => e.type === 'laeufer')) hint('strider');
 
     // C) time advances: rings expand
     const newPond = res.run.pond;
@@ -562,6 +653,7 @@ export function createApp(content) {
       ui.clearHeal = res.events.filter((e) => e.type === 'heal' && e.reason === 'pond').reduce((s, e) => s + e.amount, 0);
       seen('stones', run.reward.options.filter((o) => o.kind === 'stone').map((o) => o.id));
       seen('talismans', run.reward.options.filter((o) => o.kind === 'talisman').map((o) => o.id));
+      setTimeout(() => hint('firstReward'), 1300);
       setTimeout(() => openScreen('reward'), 1200);
     }
   }
@@ -604,6 +696,8 @@ export function createApp(content) {
         return screens.codexScreen({ content, meta: ui.meta, tab: ui.codexTab });
       case 'settings':
         return screens.settingsScreen({ settings: ui.meta.settings, persistent: persistent() });
+      case 'confirmNew':
+        return screens.confirmScreen('Dein gespeicherter Lauf wird dabei aufgegeben. Trotzdem neu beginnen?', 'confirmNew');
       case 'confirmReset':
         return screens.confirmScreen('Wirklich allen Fortschritt löschen? Perlen, Freischaltungen und Statistik sind dann weg.', 'doReset');
       case 'reward': {
@@ -668,6 +762,7 @@ export function createApp(content) {
   }
 
   function openScreen(name) {
+    $('coach').classList.add('top');
     ui.stack.push(name);
     scene.focus = -1;
     updateInfo();
@@ -676,11 +771,13 @@ export function createApp(content) {
 
   function replaceScreens(name) {
     ui.stack = name ? [name] : [];
+    $('coach').classList.toggle('top', ui.stack.length > 0);
     showTop();
   }
 
   function back() {
     ui.stack.pop();
+    $('coach').classList.toggle('top', ui.stack.length > 0);
     showTop();
     if (!ui.stack.length) refreshForecast();
   }
@@ -691,6 +788,8 @@ export function createApp(content) {
   }
 
   function toTitle() {
+    hintQueue.length = 0;
+    showHint();
     ui.run = null;
     ui.prevLight = null;
     syncScene();
@@ -765,7 +864,21 @@ export function createApp(content) {
   }
 
   const ACTIONS = {
-    newRun: () => {
+    daily: () => guardSaved(() => startRun({ daily: true, seed: `daily-${todayKey()}`, keeper: 'moench' })),
+    confirmNew: () => {
+      const old = savedRun();
+      if (old) {
+        ui.run = step(old, { type: 'abandon' }, content).run;
+        ui.summary = null;
+        bookRunEnd();
+        ui.run = null;
+      }
+      const next = ui.pendingStart;
+      ui.pendingStart = null;
+      if (next) next();
+    },
+    newRun: () => guardSaved(() => ACTIONS.newRunNow()),
+    newRunNow: () => {
       const keepers = content.keeperList.filter((k) => isUnlocked(ui.meta, 'keeper', k.id, content));
       if (keepers.length > 1 || ui.meta.maxPhase > 0) openScreen('keeper');
       else startRun({ keeper: 'moench', phase: 0 });
@@ -824,6 +937,17 @@ export function createApp(content) {
     skip: () => takeReward({ type: 'skipReward' }),
   };
 
+  // starting something new while a run is saved abandons that run: ask first
+  function guardSaved(fn) {
+    const saved = savedRun();
+    if (saved) {
+      ui.pendingStart = fn;
+      openScreen('confirmNew');
+      return;
+    }
+    fn();
+  }
+
   $('screen').addEventListener('click', (e) => {
     const b = e.target.closest('[data-act]');
     if (!b || b.disabled) return;
@@ -848,6 +972,7 @@ export function createApp(content) {
   $('btn-end').addEventListener('click', () => endTurn());
   $('btn-undo').addEventListener('click', () => undo());
   $('btn-menu').addEventListener('click', () => { if (ui.run && !ui.stack.length) openScreen('pause'); });
+  $('btn-tip').addEventListener('click', () => useTip());
   
 
   function moveCursor(dir) {
@@ -912,6 +1037,7 @@ export function createApp(content) {
       if (cmd === 'end') return endTurn();
       if (cmd === 'undo') return undo();
       if (cmd === 'throw') return scene.focus >= 0 ? tryThrow(scene.focus) : moveCursor('up');
+      if (cmd === 'tip') return useTip();
       if (cmd === 'intents') {
         scene.showIntents = !scene.showIntents;
         toast(scene.showIntents ? 'Absichten sichtbar' : 'Absichten ausgeblendet', true);
@@ -969,6 +1095,7 @@ export function createApp(content) {
 
   return {
     debugWinPond,
+    cellPos: (c) => renderer.pos(c),
     get run() { return ui.run; },
     get stack() { return ui.stack.slice(); },
     scene, startRun, debugAutoTurn, act: (name, arg) => ACTIONS[name] && ACTIONS[name](arg),

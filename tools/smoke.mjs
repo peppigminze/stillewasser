@@ -41,7 +41,9 @@ const script = (args.find((a) => a.startsWith('--script=')) || '').split('=')[1]
 const outDir = join(root, 'tools', 'screens');
 await mkdir(outDir, { recursive: true });
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }).catch(() => chromium.launch());
-const page = await browser.newPage(mobile ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true } : { viewport: { width: 1280, height: 800 } });
+const vp = (args.find((a) => a.startsWith('--viewport=')) || '').split('=')[1];
+const [vw, vh] = vp ? vp.split('x').map(Number) : mobile ? [390, 844] : [1280, 800];
+const page = await browser.newPage(mobile || vp ? { viewport: { width: vw, height: vh }, deviceScaleFactor: 2, hasTouch: true, isMobile: true } : { viewport: { width: vw, height: vh } });
 const errors = [];
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });
@@ -50,7 +52,7 @@ await page.goto(`http://localhost:${port}/`);
 await page.waitForFunction(() => window.__stille, null, { timeout: 10000 }).catch(async () => { console.log('LOAD FAILED', errors); await browser.close(); server.close(); process.exit(1); });
 const loadMs = Date.now() - t0;
 await page.waitForTimeout(900);
-const tag = mobile ? 'm' : 'd';
+const tag = vp ? `v${vw}x${vh}` : mobile ? 'm' : 'd';
 await page.screenshot({ path: join(outDir, `${tag}-0-title.png`) });
 
 if (script) {
