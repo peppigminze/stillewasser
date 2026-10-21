@@ -1,0 +1,14 @@
+{
+  "name": "stille-wasser",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser-Game (Vanilla JS, ES-Module, kein Build-Step)",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "check": "node tools/check.mjs",
+    "sim": "node sim/sim.mjs",
+    "serve": "npx http-server -c-1 ."
+  },
+  "license": "MIT"
+}
