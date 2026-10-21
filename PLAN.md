@@ -5,7 +5,7 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
 
 ## Milestones
 
-- [ ] **M1 — Fundament**: Projektgerüst, Hex-Raster, Wellenfeld-Logik, Canvas-Grundrenderer.
+- [x] **M1 — Fundament**: Projektgerüst, Hex-Raster, Wellenfeld-Logik, Canvas-Grundrenderer.
       Spielbar: Sandkasten-Teich, Steine werfen, Interferenz sehen, ein paar Gegner besiegen.
 - [ ] **M2 — Kernschleife**: Kompletter Einzelkampf: Gegner-Absichten, Bewegung, Bisse, Spawns,
       Sieg/Niederlage, Vorschau (jetzt/nächster Zug), Rückgängig, Abklingzeiten, Touch + Tastatur.
@@ -19,8 +19,10 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
 
 ## Protokoll
 
-- (noch leer)
+- **M1 erledigt:** Core (rng, hex, field, content, mods, enemies, pond, run, preview) inkl. 22 Node-Tests;
+  Canvas-Renderer (Tusche-Look, Ringe als geglättete Pfade, Wogen-Marker, Absichtspfeile), Titelbildschirm,
+  spielbarer Teich mit Wurf/Zugende/Animationen. Smoke-Test (`tools/smoke.mjs`) mit Screenshots desktop+mobil ok.
 
 ## Nächster Schritt
 
-M1 bauen: `js/core/{rng,hex,field,content}.js`, Tests, Canvas-Renderer, Sandkasten-Teich.
+M2: Rückgängig-Knopf, Tastatur-Cursor, Info-Panel zu Kreaturen/Feldern, Menü/Pause, Sieg/Niederlage-Flow pro Teich.

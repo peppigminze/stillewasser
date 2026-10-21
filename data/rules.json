@@ -1,0 +1,14 @@
+{
+  "pondRadius": 5,
+  "throwsPerTurn": 2,
+  "maxSlots": 4,
+  "surgeThreshold": 2,
+  "deathProfile": [0, 1, 1, 1],
+  "rewardChoices": 3,
+  "healAmount": 3,
+  "bossHeal": 3,
+  "maxTurnsPerPond": 60,
+  "rockRingMin": 2,
+  "pearls": { "perPond": 2, "perBoss": 4, "killsPerPearl": 8, "win": 12, "phaseBonus": 0.25, "wisp": 1 },
+  "score": { "kill": 10, "chainStep": 15, "pond": 50, "boss": 150, "lightLeft": 20, "win": 500 }
+}

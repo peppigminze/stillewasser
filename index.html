@@ -2,9 +2,53 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Projekt X</title>
-<style>html,body{margin:0;height:100%;background:#0b1020;color:#e8e4d0;font-family:Georgia,serif;display:grid;place-items:center}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#070a18">
+<meta name="description" content="Stille Wasser – ein Taktik-Roguelite über Wellen, die sich treffen.">
+<title>Stille Wasser</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23070a18'/%3E%3Ccircle cx='32' cy='32' r='11' fill='%23f6eed6'/%3E%3Ccircle cx='32' cy='32' r='19' fill='none' stroke='%23f6eed6' stroke-opacity='.55' stroke-width='2.5'/%3E%3Ccircle cx='32' cy='32' r='27' fill='none' stroke='%23e2452b' stroke-width='2.5'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
 </head>
-<body><p>Projekt X — im Aufbau.</p></body>
+<body>
+<div id="app" class="booting">
+  <canvas id="pond" aria-label="Spielfeld: der Teich"></canvas>
+
+  <header id="hud" class="hud" hidden>
+    <div class="hud-left">
+      <div id="light" class="light" title="Mondlicht"></div>
+    </div>
+    <div class="hud-mid">
+      <div id="where" class="where"></div>
+      <div id="progress" class="progress"></div>
+    </div>
+    <div class="hud-right">
+      <button id="btn-tip" class="icon-btn" title="Tipp (T)" aria-label="Tipp">?</button>
+      <button id="btn-menu" class="icon-btn" title="Menü (Esc)" aria-label="Menü">☰</button>
+    </div>
+  </header>
+
+  <div id="info" class="info" hidden></div>
+
+  <footer id="bar" class="bar" hidden>
+    <div id="talismans" class="talisman-row"></div>
+    <div class="bar-row">
+      <div id="slots" class="slots"></div>
+      <div class="bar-actions">
+        <button id="btn-undo" class="icon-btn undo" title="Rückgängig (Z)" aria-label="Rückgängig">↶</button>
+        <button id="btn-end" class="end-btn" title="Zug beenden (Leertaste)">
+          <span class="end-label">Zug beenden</span>
+          <span id="throws" class="throws"></span>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <div id="coach" class="coach" hidden></div>
+  <div id="toast" class="toast" aria-live="polite"></div>
+  <section id="screen" class="screen" hidden></section>
+  <div id="boot" class="boot"><div class="stamp">静</div></div>
+</div>
+<noscript><p style="color:#eee;text-align:center;padding:2em">Dieses Spiel braucht JavaScript.</p></noscript>
+<script type="module" src="js/main.js"></script>
+</body>
 </html>

@@ -1,0 +1,46 @@
+{
+  "start": {
+    "title": "Der Mond liegt im Teich",
+    "text": "Schatten kriechen vom Ufer heran und wollen sein Licht fressen. Du greifst nie direkt an – du wirfst Steine. Tippe ein Feld an (zweimal tippen = werfen)."
+  },
+  "afterFirstThrow": {
+    "title": "Eine Welle allein ist harmlos",
+    "text": "Jede Welle wächst pro Zug um einen Ring. Nur wo sich zwei Wellen treffen, entsteht eine Woge – und die trifft. Wirf den zweiten Stein so, dass sich die Ringe beim Schatten kreuzen."
+  },
+  "surgeMarkers": {
+    "title": "Goldene Felder = Wogen",
+    "text": "Volle goldene Sechsecke zeigen, wo beim Zugende eine Woge entsteht (mit Schadenszahl). Gestrichelte zeigen Wogen im nächsten Zug. Pfeile zeigen, wohin die Schatten ziehen."
+  },
+  "firstKill": {
+    "title": "Todeswellen",
+    "text": "Jeder besiegte Schatten sendet eine eigene Welle aus. Trifft sie auf eine andere, entsteht eine neue Woge – so entstehen Ketten."
+  },
+  "firstBite": {
+    "title": "Licht ist dein Leben",
+    "text": "Schatten direkt am Mond beißen jeden Zug zu. Fällt das Licht auf 0, endet der Lauf. Wehre sie ab, bevor sie ankommen."
+  },
+  "darkRipple": {
+    "title": "Dunkle Wellen",
+    "text": "Violette Wellen haben −1. Sie löschen helle Wellen aus – aber zwei dunkle zusammen ergeben einen Sog, der ebenfalls trifft."
+  },
+  "firstReward": {
+    "title": "Gaben",
+    "text": "Nach jedem Teich wählst du eine Gabe: einen neuen Stein (max. 4), einen Talisman, der Regeln bricht, oder Mondlicht."
+  },
+  "resonance": {
+    "title": "Resonanz",
+    "text": "Stirbt ein Schatten genau dort, wo du in diesem Zug einen Stein geworfen hast, laufen beide Wellen deckungsgleich: ein ganzer Ring aus Wogen."
+  },
+  "boss": {
+    "title": "Ein großer Schatten",
+    "text": "Bosse halten viel aus. Kreuze mehrere Wellen gleichzeitig (Stärke 3+) und nutze die Todeswellen ihrer Diener."
+  },
+  "cooldown": {
+    "title": "Abklingzeit",
+    "text": "Starke Steine brauchen Ruhe: Die Zahl zeigt, wie viele Züge der Stein noch ruht."
+  },
+  "tip": {
+    "title": "Tipp-Knopf",
+    "text": "Der ?-Knopf oben rechts schlägt einen Wurf vor. Kein Zwang – aber gut zum Lernen."
+  }
+}

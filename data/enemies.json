@@ -1,0 +1,76 @@
+[
+  {
+    "id": "tintling", "name": "Tintling",
+    "desc": "Ein Klecks Dunkelheit. Kriecht stur zum Mond.",
+    "hp": 1, "armor": 0, "speed": 1, "bite": 1, "cost": 1,
+    "pattern": ["move"],
+    "look": { "shape": "blob", "size": 0.44, "rim": "#6f6bd8", "eye": "#ffb347" }
+  },
+  {
+    "id": "laeufer", "name": "Wasserläufer",
+    "desc": "Zieht 2 Felder pro Zug – und springt dabei über Wellen hinweg.",
+    "hp": 1, "armor": 0, "speed": 2, "bite": 1, "cost": 2,
+    "pattern": ["move"],
+    "look": { "shape": "strider", "size": 0.38, "rim": "#5fb8c9", "eye": "#ffe08a" }
+  },
+  {
+    "id": "unke", "name": "Unke",
+    "desc": "Jeden zweiten Zug ruft sie eine dunkle Welle (−1), die helle Wellen auslöscht.",
+    "hp": 2, "armor": 0, "speed": 1, "bite": 1, "cost": 2,
+    "pattern": ["move", "emit"], "emitProfile": [-1, -1, -1, -1],
+    "look": { "shape": "toad", "size": 0.48, "rim": "#b45bd6", "eye": "#ff8a3d" }
+  },
+  {
+    "id": "schnecke", "name": "Panzerschnecke",
+    "desc": "Panzer 1: Wogen verlieren 1 Schaden. Langsam, beißt aber fest (2).",
+    "hp": 2, "armor": 1, "speed": 1, "bite": 2, "cost": 3,
+    "pattern": ["move", "rest"],
+    "look": { "shape": "snail", "size": 0.5, "rim": "#c9a45f", "eye": "#fff0b0" }
+  },
+  {
+    "id": "laich", "name": "Laich",
+    "desc": "Bewegt sich nicht. Alle 3 Züge schlüpft ein Tintling (höchstens 3).",
+    "hp": 2, "armor": 0, "speed": 0, "bite": 0, "cost": 2,
+    "pattern": ["rest", "rest", "hatch"], "hatch": "tintling", "hatchLimit": 3,
+    "look": { "shape": "spawn", "size": 0.46, "rim": "#7bd88f", "eye": "#d9ff8a" }
+  },
+  {
+    "id": "hecht", "name": "Hecht",
+    "desc": "Lauert, dann schießt er bis zu 3 Felder geradeaus. Biss 2.",
+    "hp": 2, "armor": 0, "speed": 1, "bite": 2, "cost": 3,
+    "pattern": ["rest", "dash"], "dashLen": 3,
+    "look": { "shape": "pike", "size": 0.48, "rim": "#8fa3c9", "eye": "#ff5e5e" }
+  },
+  {
+    "id": "irrlicht", "name": "Irrlicht",
+    "desc": "Harmlos und flüchtig. Wird es getroffen, schenkt es eine starke helle Welle (+1 Perle).",
+    "hp": 1, "armor": 0, "speed": 1, "bite": 0, "cost": 0,
+    "pattern": ["wander"], "hostile": false, "life": 7,
+    "deathProfile": [0, 2, 1, 1],
+    "look": { "shape": "wisp", "size": 0.34, "rim": "#9fffe0", "eye": "#ffffff" }
+  },
+  {
+    "id": "kroetenmutter", "name": "Die Krötenmutter", "boss": true,
+    "desc": "Boss. Ruft dunkle Wellen und lässt Tintlinge schlüpfen.",
+    "hp": 7, "armor": 0, "speed": 1, "bite": 2, "cost": 0,
+    "pattern": ["move", "emit", "hatch"], "emitProfile": [-1, -1, -1, -1, -1], "hatch": "tintling",
+    "deathProfile": [0, 2, 2, 1, 1],
+    "look": { "shape": "toad", "size": 0.7, "rim": "#d46bff", "eye": "#ff8a3d", "crown": true }
+  },
+  {
+    "id": "nebelhecht", "name": "Der Nebelhecht", "boss": true,
+    "desc": "Boss. Panzer 1. Sprintet und hüllt sich in dunkle Wellen.",
+    "hp": 9, "armor": 1, "speed": 1, "bite": 3, "cost": 0,
+    "pattern": ["dash", "emit", "rest"], "dashLen": 3, "emitProfile": [-1, -1, -1],
+    "deathProfile": [0, 2, 2, 1, 1],
+    "look": { "shape": "pike", "size": 0.7, "rim": "#a9c0ff", "eye": "#ff5e5e", "crown": true }
+  },
+  {
+    "id": "namazu", "name": "Namazu, der Mondfresser", "boss": true,
+    "desc": "Endboss. Panzer 1. Gräbt Laich ins Wasser und schluckt Licht (Biss 3).",
+    "hp": 13, "armor": 1, "speed": 1, "bite": 3, "cost": 0,
+    "pattern": ["move", "emit", "hatch", "rest"], "emitProfile": [-1, -1, -1, -1, -1, -1], "hatch": "laich",
+    "deathProfile": [0, 3, 2, 2, 1],
+    "look": { "shape": "namazu", "size": 0.78, "rim": "#ff9a6b", "eye": "#fff36b", "crown": true }
+  }
+]

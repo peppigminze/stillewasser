@@ -1,0 +1,47 @@
+[
+  {
+    "id": "kiesel", "name": "Kiesel", "glyph": "●",
+    "desc": "Eine schlichte Welle, 4 Felder weit.",
+    "profile": [1, 1, 1, 1, 1], "cooldown": 0, "unlock": 0, "aiValue": 2
+  },
+  {
+    "id": "flussstein", "name": "Flussstein", "glyph": "⬢",
+    "desc": "Schwerer Aufschlag: trifft das Zielfeld direkt (Stärke 2), danach normale Welle.",
+    "profile": [2, 1, 1, 1, 1], "cooldown": 2, "unlock": 0, "aiValue": 4
+  },
+  {
+    "id": "mondstein", "name": "Mondstein", "glyph": "◐",
+    "desc": "Eine lange Welle, die 7 Felder weit läuft.",
+    "profile": [1, 1, 1, 1, 1, 1, 1, 1], "cooldown": 1, "unlock": 0, "aiValue": 3
+  },
+  {
+    "id": "schattenstein", "name": "Schattenstein", "glyph": "◆",
+    "desc": "Dunkle Welle (−1). Löscht helle Wellen aus – zwei dunkle ergeben einen Sog.",
+    "profile": [-1, -1, -1, -1, -1], "cooldown": 0, "unlock": 0, "aiValue": 2
+  },
+  {
+    "id": "zwilling", "name": "Zwillingsstein", "glyph": "◎",
+    "desc": "Landet zweimal: im Ziel und gespiegelt auf der anderen Seite des Mondes.",
+    "profile": [1, 1, 1, 1], "cooldown": 1, "mirror": true, "unlock": 0, "aiValue": 4
+  },
+  {
+    "id": "echostein", "name": "Echostein", "glyph": "◌",
+    "desc": "Welle jetzt – und zwei Züge später eine zweite aus demselben Feld.",
+    "profile": [1, 1, 1, 1], "cooldown": 2, "echo": 2, "unlock": 15, "aiValue": 4
+  },
+  {
+    "id": "brandung", "name": "Brandungsstein", "glyph": "✶",
+    "desc": "Kein Aufschlag, aber ein kurzer Ring der Stärke 2: trifft allein alles, was er berührt.",
+    "profile": [0, 2, 2], "cooldown": 3, "unlock": 20, "aiValue": 5
+  },
+  {
+    "id": "tautropfen", "name": "Tautropfen", "glyph": "•",
+    "desc": "Kleine Welle (2 Felder). Kostet keinen Wurf.",
+    "profile": [1, 1, 1], "cooldown": 0, "free": true, "unlock": 15, "aiValue": 3
+  },
+  {
+    "id": "strudel", "name": "Strudelstein", "glyph": "✺",
+    "desc": "Wechselt bei jedem Ring das Vorzeichen: hell, dunkel, hell …",
+    "profile": [1, -1, 1, -1, 1, -1], "cooldown": 1, "unlock": 20, "aiValue": 3
+  }
+]

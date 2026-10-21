@@ -6,7 +6,7 @@ Hosting: GitHub Pages (Branch `main`, Root). Konzept: siehe `SECRET_CONCEPT.md`.
 ## Befehle
 
 ```bash
-npm test                 # node --test tests/  (keine Abhängigkeiten nötig)
+npm test                 # node --test tests/*.test.mjs (keine Abhängigkeiten nötig)
 npm run check            # Syntax-Check aller JS-Dateien + Content-Validierung
 npm run sim              # Balance-Simulation (schreibt sim/report.md)
 npx http-server -c-1 .   # lokal spielen: http://localhost:8080 (file:// geht nicht wegen fetch)

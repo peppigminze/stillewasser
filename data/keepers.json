@@ -1,0 +1,22 @@
+[
+  {
+    "id": "moench", "name": "Der Mönch", "glyph": "☸",
+    "desc": "Geduldig und solide. Zwei Kiesel und ein schwerer Flussstein.",
+    "stones": ["kiesel", "kiesel", "flussstein"], "light": 10, "talismans": [], "mods": {}, "unlock": 0
+  },
+  {
+    "id": "fischerin", "name": "Die Fischerin", "glyph": "⚓",
+    "desc": "Kennt jede Strömung. Startet mit Zwillings- und Mondstein; Gaben bieten 4 statt 3 Optionen.",
+    "stones": ["kiesel", "zwilling", "mondstein"], "light": 9, "talismans": [], "mods": { "rewardChoices": 1 }, "unlock": 30
+  },
+  {
+    "id": "kind", "name": "Das Kind", "glyph": "✿",
+    "desc": "Wirft unbekümmert. Tautropfen und zwei Kiesel, startet mit dem Talisman Nachhall – aber nur 8 Licht.",
+    "stones": ["tautropfen", "kiesel", "kiesel"], "light": 8, "talismans": ["nachhall"], "mods": {}, "unlock": 40
+  },
+  {
+    "id": "weberin", "name": "Die Schattenweberin", "glyph": "☾",
+    "desc": "Spielt mit der Dunkelheit. Schatten- und Strudelstein; Sog verursacht +1 Schaden.",
+    "stones": ["schattenstein", "kiesel", "strudel"], "light": 10, "talismans": [], "mods": { "sogBonus": 1 }, "unlock": 55
+  }
+]
