@@ -59,5 +59,5 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
 
 ## Nächster Schritt
 
-V1 ist fertig. Einzig offen: GitHub Pages muss einmalig in den Repo-Settings aktiviert werden
-(die API dafür ist in dieser Umgebung gesperrt, siehe DECISIONS.md). Ideen für danach: BACKLOG.md.
+V1 ist fertig. Einzig offen (manuell, weil die Umgebung Repo-Settings-Schreibzugriffe sperrt):
+GitHub Pages aktivieren (main, Root) und optional den Default-Branch auf `main` stellen. Ideen für danach: BACKLOG.md.

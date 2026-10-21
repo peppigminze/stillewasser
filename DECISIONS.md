@@ -14,6 +14,9 @@ Format: Datum · Entscheidung · Begründung. Neueste unten.
   und `*.github.io` ist ebenfalls nicht erreichbar. Laut Proxy-Regeln wird das nicht umgangen.
   ⇒ Pages muss einmalig manuell aktiviert werden (Settings → Pages → Deploy from branch → `main` / `/ (root)`).
   `.nojekyll` liegt bereit, damit Pages die Dateien unverändert ausliefert.
+- **Default-Branch:** Da das leere Repo zuerst den Arbeits-Branch erhielt, hat GitHub `claude/stoic-rubin-e2wjfn`
+  zum Default gemacht. Zurückstellen per API scheitert ebenfalls am Proxy („Repository settings writes are not
+  permitted“). Beide Branches sind inhaltsgleich; optional in Settings → General → Default branch auf `main` stellen.
 - **Token:** wird ausschließlich über `$GH_TOKEN` aus der Umgebung gelesen, nie ausgegeben/gespeichert.
 - **Kein Build-Step, keine Dependencies:** `package.json` nur für `"type":"module"` + npm-Skripte.
   Tests mit `node:test` (Node 22 vorhanden). Smoke-Test nutzt das global installierte Playwright, falls vorhanden.

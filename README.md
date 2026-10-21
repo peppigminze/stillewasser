@@ -82,3 +82,5 @@ node tools/smoke.mjs [--mobile|--viewport=844x390] [--script=tools/play-full.mjs
 ### GitHub Pages aktivieren
 Settings → Pages → *Build and deployment* → Source „Deploy from a branch“ → Branch `main`, Ordner `/ (root)` → Save.
 Nach ein bis zwei Minuten ist das Spiel unter der oben genannten Adresse erreichbar.
+Optional: Settings → General → *Default branch* auf `main` stellen (der Arbeits-Branch `claude/stoic-rubin-e2wjfn`
+ist inhaltsgleich).
