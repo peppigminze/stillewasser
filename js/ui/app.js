@@ -7,6 +7,13 @@ import { getMods, stoneProfile } from '../core/mods.js';
 import { createRenderer } from './render.js';
 import { createFx } from './fx.js';
 import { bindInput } from './input.js';
+import * as screens from './screens.js';
+
+const esc = screens.esc;
+// features that are switched on milestone by milestone
+const FEATURES = { daily: false, shrine: false, codex: false, settings: false };
+// screens that cannot be closed with Esc
+const MODAL = new Set(['title', 'runEnd', 'pondClear', 'reward', 'replace']);
 
 export function createApp(content) {
   const $ = (id) => document.getElementById(id);
@@ -18,7 +25,7 @@ export function createApp(content) {
     focus: -1, cursor: -1, tip: -1, moonLight: 1, moonHurt: 0, palette: 'title',
     showIntents: true, showNext: true, expiring: [], titleRipples: [],
   };
-  const ui = { run: null, slot: 0, busy: false, speed: 1, lastType: 'mouse' };
+  const ui = { run: null, slot: 0, busy: false, speed: 1, lastType: 'mouse', anchorY: null, prevLight: null, stack: [] };
   const tweens = [];
 
   // ------------------------------------------------------------ timing
@@ -53,12 +60,19 @@ export function createApp(content) {
   function resize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const hudVisible = !$('hud').hidden;
-    const top = hudVisible ? $('hud').offsetHeight + 4 : 20;
-    const bottom = hudVisible ? $('bar').offsetHeight + 6 : 20;
+    const inGame = !$('hud').hidden;
+    const top = inGame ? $('hud').offsetHeight + 2 : 16;
+    const bottom = inGame ? $('bar').offsetHeight + 4 : 16;
     renderer.resize(w, h, Math.min(2, window.devicePixelRatio || 1), { top, bottom });
   }
   window.addEventListener('resize', resize);
+
+  function setInGame(on) {
+    $('hud').hidden = !on;
+    $('bar').hidden = !on;
+    if (!on) $('info').hidden = true;
+    resize();
+  }
 
   // ------------------------------------------------------------- scene
   function syncActors(pond) {
@@ -70,9 +84,15 @@ export function createApp(content) {
         a = { id: e.id, alpha: 1, scale: 1, flash: 0 };
         scene.actors.set(e.id, a);
       }
-      Object.assign(a, { type: e.type, cell: e.cell, hp: e.hp, maxHp: e.maxHp, heading: e.heading, path: null, u: 1, dying: false, alpha: 1 });
+      Object.assign(a, { type: e.type, cell: e.cell, hp: e.hp, maxHp: e.maxHp, heading: e.heading, path: null, u: 1, dying: false, alpha: 1, scale: 1 });
     }
     for (const id of [...scene.actors.keys()]) if (!ids.has(id)) scene.actors.delete(id);
+  }
+
+  function paletteFor(run) {
+    if (!run) return 'title';
+    if (run.tutorial && run.act === 0 && run.step === 0) return 'spring';
+    return content.acts[Math.min(run.act, content.acts.length - 1)].palette;
   }
 
   function syncScene() {
@@ -80,11 +100,13 @@ export function createApp(content) {
     if (!run || !run.pond) {
       scene.pond = null;
       scene.actors.clear();
+      scene.palette = 'title';
+      scene.forecast = null;
       return;
     }
     scene.pond = run.pond;
     scene.visTick = run.pond.tick;
-    scene.palette = run.tutorial && run.act === 0 && run.step === 0 ? 'spring' : content.acts[run.act].palette;
+    scene.palette = paletteFor(run);
     scene.moonLight = run.light / Math.max(1, run.maxLight);
     syncActors(run.pond);
     refreshForecast();
@@ -92,15 +114,16 @@ export function createApp(content) {
   }
 
   function playable() {
-    return ui.run && ui.run.mode === 'pond' && ui.run.pond.status === 'playing' && !ui.busy;
+    return !!(ui.run && ui.run.mode === 'pond' && ui.run.pond.status === 'playing' && !ui.busy && !ui.stack.length);
   }
 
   function refreshForecast() {
     const run = ui.run;
     scene.preview = null;
     scene.ghost = null;
-    if (!playable()) {
+    if (!run || run.mode !== 'pond' || run.pond.status !== 'playing' || ui.busy) {
       scene.forecast = null;
+      updateInfo();
       return;
     }
     scene.pond = run.pond;
@@ -112,15 +135,18 @@ export function createApp(content) {
         scene.pond = p.run.pond;
         const stone = content.stones[run.slots[ui.slot].stone];
         scene.ghost = { origin: scene.focus, profile: stoneProfile(stone, getMods(run, content)) };
+        updateInfo();
         return;
       }
     }
     scene.forecast = forecast(run, content);
+    updateInfo();
   }
 
   function setFocus(cell) {
     if (scene.focus === cell) return;
     scene.focus = cell;
+    if (cell >= 0) ui.anchorY = renderer.pos(cell).y;
     refreshForecast();
   }
 
@@ -129,37 +155,101 @@ export function createApp(content) {
     const run = ui.run;
     if (!run || !run.pond) return;
     const pond = run.pond;
+    const lost = ui.prevLight !== null && run.light < ui.prevLight;
     const pips = [];
-    for (let i = 0; i < run.maxLight; i++) pips.push(`<i class="pip${i < run.light ? '' : ' off'}"></i>`);
+    for (let i = 0; i < run.maxLight; i++) {
+      const off = i >= run.light;
+      const justLost = lost && off && i < ui.prevLight;
+      pips.push(`<i class="pip${off ? ' off' : ''}${justLost ? ' lost' : ''}"></i>`);
+    }
+    ui.prevLight = run.light;
     $('light').innerHTML = pips.join('') + `<span class="num">${run.light}</span>`;
     const act = content.acts[run.act];
     const tut = run.tutorial && run.act === 0 && run.step === 0;
     const pondLabel = tut ? 'Lernteich' : pond.kind === 'boss' ? 'Boss' : `Teich ${run.step + 1}/${act.ponds.length}`;
-    $('where').innerHTML = `<small>${act.sub} · ${pondLabel}</small>${act.name}`;
-    const left = pond.total - pond.kills;
-    $('progress').textContent = `Zug ${pond.turn + 1} · Schatten übrig: ${Math.max(0, left)}`;
+    $('where').innerHTML = `<small>${act.sub} · ${pondLabel}${run.daily ? ' · Täglich' : ''}</small>${esc(act.name)}`;
+    const boss = pond.enemies.find((e) => content.enemies[e.type].boss);
+    const left = Math.max(0, pond.total - pond.kills);
+    $('progress').innerHTML = `Zug ${pond.turn + 1} · Schatten übrig: ${left}`
+      + (boss ? `<span class="boss-hp"><i style="width:${(100 * boss.hp) / boss.maxHp}%"></i></span>` : '');
 
-    const slots = run.slots.map((s, i) => {
+    $('slots').innerHTML = run.slots.map((s, i) => {
       const st = content.stones[s.stone];
-      const prof = st.profile
-        .map((a) => `<i class="${a < 0 ? 'neg' : a === 0 ? 'zero' : ''}" style="height:${Math.min(14, 5 * Math.abs(a) + 2)}px"></i>`)
-        .join('');
       const cls = ['slot', i === ui.slot ? 'sel' : '', s.cd > 0 ? 'cd' : '', st.free ? 'free' : ''].join(' ');
-      return `<button class="${cls}" data-slot="${i}" title="${st.name}: ${st.desc}">
+      return `<button class="${cls}" data-slot="${i}" title="${esc(st.name)}: ${esc(st.desc)}">
         <span class="key">${i + 1}</span><span class="g">${st.glyph}</span>
-        <span class="prof">${prof}</span><span class="n">${st.name}</span>
+        <span class="prof">${screens.profileBars(st.profile)}</span><span class="n">${esc(st.name)}</span>
         ${s.cd > 0 ? `<span class="cdv">${s.cd}</span>` : ''}</button>`;
-    });
-    $('slots').innerHTML = slots.join('');
+    }).join('');
+    $('talismans').innerHTML = run.talismans
+      .map((t) => `<span class="tal" title="${esc(content.talismans[t].name)}: ${esc(content.talismans[t].desc)}">${content.talismans[t].glyph}</span>`)
+      .join('');
     const total = pond.throwsLeft + pond.turnThrows.filter((t) => !t.free).length;
     $('throws').innerHTML = Array.from({ length: total }, (_, i) => `<i class="${i < pond.throwsLeft ? '' : 'used'}"></i>`).join('');
     $('btn-end').disabled = !playable();
     $('btn-end').classList.toggle('ready', playable() && pond.throwsLeft === 0);
+    $('btn-undo').disabled = !playable() || !pond.turnThrows.length;
+  }
+
+  const INTENT_TEXT = {
+    move: (it) => `zieht ${it.path.length} Feld${it.path.length > 1 ? 'er' : ''} Richtung Mond`,
+    dash: (it) => `<span class="red">sprintet ${it.path.length} Felder</span>`,
+    wander: () => 'schwebt weiter',
+    bite: (it) => (it.blocked ? '<span class="gold">beißt – wird abgewehrt</span>' : `<span class="red">beißt den Mond (−${it.dmg} Licht)</span>`),
+    emit: () => '<span class="vio">ruft eine dunkle Welle</span>',
+    hatch: () => 'lässt etwas schlüpfen',
+    rest: () => 'lauert',
+    wait: () => 'wartet',
+    vanish: () => 'verblasst',
+  };
+
+  function updateInfo() {
+    const el = $('info');
+    const run = ui.run;
+    if (!run || run.mode !== 'pond' || ui.busy || scene.focus < 0) {
+      el.hidden = true;
+      return;
+    }
+    const pond = run.pond;
+    const cell = scene.focus;
+    const parts = [];
+    const enemy = pond.enemies.find((e) => e.cell === cell);
+    if (enemy) {
+      const def = content.enemies[enemy.type];
+      const fc = scene.forecast;
+      let next = '';
+      if (fc && fc.dying && fc.dying.has(enemy.id)) next = '<span class="gold">wird beim Zugende vergehen</span>';
+      else if (fc && fc.intents[enemy.id]) next = (INTENT_TEXT[fc.intents[enemy.id].kind] || INTENT_TEXT.rest)(fc.intents[enemy.id]);
+      parts.push(`<b>${esc(def.name)}</b><span class="tag">♥ ${enemy.hp}/${enemy.maxHp}</span>${def.armor ? `<span class="tag">Panzer ${def.armor}</span>` : ''}<br>${esc(def.desc)}${next ? `<br>Als Nächstes: ${next}` : ''}`);
+    }
+    const tg = pond.telegraphs.find((t) => t.cell === cell);
+    if (tg) parts.push(`Hier taucht nach diesem Zug auf: <b>${esc(content.enemies[tg.type].name)}</b>`);
+    if (pond.rocks.includes(cell)) parts.push('<b>Fels</b> – blockiert Wellen und Schatten.');
+    else if (cell === 0) parts.push('<b>Der Mond</b> – sein Licht ist dein Leben. Kein Ziel für Steine.');
+    else if (scene.preview && scene.preview.error) parts.push(`<span class="red">${esc(scene.preview.error)}</span>`);
+    else if (scene.preview) {
+      const st = content.stones[run.slots[ui.slot].stone];
+      const now = scene.preview.now;
+      const kills = now.hits.filter((h) => h.lethal).length;
+      const dmg = now.hits.reduce((s, h) => s + h.dmg, 0);
+      const nextHits = scene.preview.next ? scene.preview.next.hits.filter((h) => h.dmg > 0).length : 0;
+      const bits = [`Wurf: <b>${esc(st.name)}</b>`];
+      if (dmg) bits.push(`<span class="gold">jetzt ${dmg} Schaden${kills ? `, ${kills} besiegt` : ''}</span>`);
+      if (nextHits) bits.push(`nächster Zug: ${nextHits} Treffer`);
+      if (!dmg && !nextHits) bits.push('legt eine Welle für später');
+      parts.push(bits.join(' · ') + (ui.lastType !== 'mouse' && ui.lastType !== 'key' ? '<br><span class="gold">Nochmal tippen zum Werfen</span>' : ''));
+    }
+    if (!parts.length) {
+      el.hidden = true;
+      return;
+    }
+    el.innerHTML = parts.join('<br>');
+    el.hidden = false;
   }
 
   function selectSlot(i) {
     const run = ui.run;
-    if (!run || !run.slots[i]) return;
+    if (!run || !run.slots[i] || ui.stack.length) return;
     ui.slot = i;
     renderHud();
     refreshForecast();
@@ -167,10 +257,11 @@ export function createApp(content) {
 
   function autoSelectSlot() {
     const run = ui.run;
-    const ok = (i) => run.slots[i] && run.slots[i].cd === 0;
-    if (ok(ui.slot)) return;
+    if (!run) return;
+    if (run.slots[ui.slot] && run.slots[ui.slot].cd === 0) return;
     const i = run.slots.findIndex((s) => s.cd === 0);
     if (i >= 0) ui.slot = i;
+    else if (!run.slots[ui.slot]) ui.slot = 0;
   }
 
   let toastTimer = 0;
@@ -180,7 +271,24 @@ export function createApp(content) {
     el.classList.toggle('soft', soft);
     el.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 1900);
+  }
+
+  function banner(b1, b2, b3 = '', boss = false) {
+    const el = document.createElement('div');
+    el.className = `banner${boss ? ' boss' : ''}`;
+    el.innerHTML = `<div class="b1">${esc(b1)}</div><div class="b2">${esc(b2)}</div>${b3 ? `<div class="b3">${esc(b3)}</div>` : ''}`;
+    $('app').appendChild(el);
+    setTimeout(() => el.remove(), 2300);
+  }
+
+  function pondBanner() {
+    const run = ui.run;
+    const act = content.acts[run.act];
+    const pond = run.pond;
+    if (pond.kind === 'tutorial') banner('Lernteich', act.name, 'Hüte den Mond');
+    else if (pond.kind === 'boss') banner(act.sub, content.enemies[pond.boss].name, 'Boss', true);
+    else banner(act.sub, act.name, `Teich ${run.step + 1}`);
   }
 
   // ------------------------------------------------------------ actions
@@ -194,15 +302,27 @@ export function createApp(content) {
       return;
     }
     ui.run = res.run;
+    const S = renderer.size;
     const p = renderer.pos(cell);
-    fx.splash(p.x, p.y, renderer.size, 1.1);
+    fx.splash(p.x, p.y, S, 1.1);
     if (ev.mirror >= 0) {
       const m = renderer.pos(ev.mirror);
-      fx.splash(m.x, m.y, renderer.size, 1.1);
+      fx.splash(m.x, m.y, S, 1.1);
     }
     autoSelectSlot();
-    scene.focus = ui.lastType === 'mouse' ? cell : -1;
+    scene.focus = ui.lastType === 'mouse' || ui.lastType === 'key' ? cell : -1;
     syncScene();
+    onStateChange();
+  }
+
+  function undo() {
+    if (!playable()) return;
+    const res = step(ui.run, { type: 'undo' }, content);
+    if (res.events[0].type === 'invalid') return;
+    ui.run = res.run;
+    ui.slot = res.events[0].slot;
+    syncScene();
+    onStateChange();
   }
 
   async function endTurn() {
@@ -211,17 +331,21 @@ export function createApp(content) {
     const res = step(old, { type: 'endTurn' }, content);
     if (res.events[0] && res.events[0].type === 'invalid') return;
     ui.busy = true;
+    const keepFocus = scene.focus;
     scene.focus = -1;
     scene.forecast = null;
     scene.preview = null;
     scene.ghost = null;
+    updateInfo();
     renderHud();
     await animateTurn(old, res);
     ui.run = res.run;
     ui.busy = false;
     autoSelectSlot();
+    if (ui.lastType === 'key') scene.focus = keepFocus;
     syncScene();
-    afterTurn(res.run);
+    onStateChange();
+    afterTurn(res);
   }
 
   async function animateTurn(old, res) {
@@ -264,7 +388,11 @@ export function createApp(content) {
           tween(380, (k) => { a.alpha = 1 - k; a.scale = 1 + k * 0.5; });
         }
         if (e.chain >= 2) chainPop(p.x, p.y - S, e.chain);
+        if (!e.hostile) fx.text(p.x, p.y - S * 1.2, '+1 ◈', '#7fe3d0', S * 0.6);
         impact = true;
+      } else if (e.type === 'heal') {
+        const m = renderer.pos(0);
+        fx.text(m.x, m.y - S * 1.3, `+${e.amount} Licht`, '#7fe3d0', S * 0.6);
       }
     }
     if (impact) await wait(380);
@@ -303,10 +431,8 @@ export function createApp(content) {
       } else if (e.type === 'spawn' || e.type === 'hatch') {
         acted = true;
         const id = e.type === 'spawn' ? e.id : e.newId;
-        const a = { id, type: e.enemy, cell: e.cell, alpha: 1, scale: 0, flash: 0, u: 1, heading: -1 };
         const def = content.enemies[e.enemy];
-        a.hp = def.hp;
-        a.maxHp = def.hp;
+        const a = { id, type: e.enemy, cell: e.cell, alpha: 1, scale: 0, flash: 0, u: 1, heading: -1, hp: def.hp, maxHp: def.hp };
         scene.actors.set(id, a);
         const p = renderer.pos(e.cell);
         fx.splash(p.x, p.y, S, 0.8, def.look.rim);
@@ -321,22 +447,17 @@ export function createApp(content) {
 
     // C) time advances: rings expand
     const newPond = res.run.pond;
-    if (newPond && newPond.tick > oldPond.tick) {
+    if (newPond && newPond.tick > oldPond.tick && res.run.mode === 'pond') {
       const alive = new Set(newPond.ripples.map((r) => r.id));
       scene.expiring = oldPond.ripples.filter((r) => !alive.has(r.id) && r.born <= oldPond.tick);
       scene.pond = newPond;
       scene.visTick = oldPond.tick;
-      syncActorsSoft(newPond);
+      for (const e of newPond.enemies) {
+        const a = scene.actors.get(e.id);
+        if (a) { a.hp = e.hp; a.heading = e.heading; }
+      }
       await tween(430, (k) => { scene.visTick = oldPond.tick + k; }, (k) => 1 - Math.pow(1 - k, 2));
       scene.expiring = [];
-    }
-  }
-
-  // keep animated actors, but add/remove according to the new pond
-  function syncActorsSoft(pond) {
-    for (const e of pond.enemies) {
-      const a = scene.actors.get(e.id);
-      if (a) { a.hp = e.hp; a.heading = e.heading; }
     }
   }
 
@@ -351,56 +472,138 @@ export function createApp(content) {
     setTimeout(() => el.remove(), 1200);
   }
 
-  function afterTurn(run) {
-    if (run.mode === 'lost') showEnd(false);
-    else if (run.mode === 'won' || run.mode === 'reward') showEnd(true);
+  function afterTurn(res) {
+    const run = res.run;
+    if (run.mode === 'lost' || run.mode === 'won') {
+      setTimeout(() => openScreen('runEnd'), 650);
+    } else if (run.mode === 'reward') {
+      setTimeout(() => openScreen('pondClear'), 500);
+    }
   }
 
-  // --------------------------------------------------------- screens (M1)
-  function showScreen(html) {
+  function onStateChange() {
+    // persistence hook (M3)
+  }
+
+  // ------------------------------------------------------------- screens
+  function renderScreen(name) {
+    const run = ui.run;
+    switch (name) {
+      case 'title':
+        return screens.titleScreen({ canContinue: false, continueLabel: '', pearls: 0, dailyDone: false, features: FEATURES });
+      case 'pause':
+        return screens.pauseScreen({ daily: run && run.daily, features: FEATURES });
+      case 'howto':
+        return screens.howtoScreen();
+      case 'confirmAbandon':
+        return screens.confirmScreen('Lauf wirklich aufgeben?', 'doAbandon');
+      case 'pondClear': {
+        const pond = run.pond;
+        return screens.pondClearScreen({
+          title: pond.kind === 'boss' ? `${content.enemies[pond.boss].name} ist besiegt` : 'Der Teich ist still',
+          sub: content.acts[run.act].name,
+          healText: '',
+        });
+      }
+      case 'runEnd': {
+        const won = run.mode === 'won';
+        const reason = won ? 'Alle drei Teiche sind befreit. Der Mond leuchtet.'
+          : run.result && run.result.reason === 'abandon' ? 'Du hast den Lauf aufgegeben.'
+            : run.result && run.result.reason === 'dawn' ? 'Der Morgen graute, doch der Teich blieb dunkel.'
+              : 'Das letzte Licht wurde verschlungen.';
+        return screens.runEndScreen({ won, stats: run.stats, pearls: 0, newPhase: '', score: run.stats.score, best: 0, daily: run.daily, reasonText: reason });
+      }
+      default:
+        return '';
+    }
+  }
+
+  function showTop() {
     const el = $('screen');
-    el.innerHTML = html;
+    const name = ui.stack[ui.stack.length - 1];
+    if (!name) {
+      el.hidden = true;
+      el.innerHTML = '';
+      renderHud();
+      return;
+    }
+    el.innerHTML = renderScreen(name);
     el.hidden = false;
-  }
-  function hideScreen() {
-    $('screen').hidden = true;
-    $('screen').innerHTML = '';
+    el.scrollTop = 0;
+    const first = el.querySelector('.btn.primary, .btn');
+    if (first && ui.lastType === 'key') first.focus();
   }
 
-  function showTitle() {
+  function openScreen(name) {
+    ui.stack.push(name);
+    scene.focus = -1;
+    updateInfo();
+    showTop();
+  }
+
+  function replaceScreens(name) {
+    ui.stack = name ? [name] : [];
+    showTop();
+  }
+
+  function back() {
+    ui.stack.pop();
+    showTop();
+    if (!ui.stack.length) refreshForecast();
+  }
+
+  function toTitle() {
     ui.run = null;
+    ui.prevLight = null;
     syncScene();
-    $('hud').hidden = true;
-    $('bar').hidden = true;
-    resize();
-    showScreen(`<div class="panel title-wrap">
-      <div class="stamp">静</div>
-      <div class="game-title">STILLE WASSER</div>
-      <div class="tagline">Hüte den Mond. Wo Wellen sich treffen, entsteht Kraft.</div>
-      <div class="menu"><button class="btn primary" data-act="start">Spielen</button></div>
-    </div>`);
+    setInGame(false);
+    replaceScreens('title');
   }
 
-  function showEnd(won) {
-    showScreen(`<div class="panel"><div class="sub">${won ? 'Geschafft' : 'Der Mond erlischt'}</div>
-      <h2>${won ? 'Der Teich ist still.' : 'Dunkelheit.'}</h2><span class="brush"></span>
-      <div class="menu"><button class="btn primary" data-act="start">Nochmal</button></div></div>`);
-  }
-
-  function startRun() {
-    hideScreen();
-    ui.run = newRun({ seed: String(Date.now()), keeper: 'moench' }, content);
+  function startRun(opts = {}) {
+    ui.run = newRun({ seed: opts.seed || String(Date.now()), keeper: opts.keeper || 'moench', phase: opts.phase || 0, ...opts }, content);
     ui.slot = 0;
-    $('hud').hidden = false;
-    $('bar').hidden = false;
+    ui.prevLight = null;
+    fx.clear();
+    replaceScreens(null);
+    setInGame(true);
     syncScene();
-    resize();
+    pondBanner();
+    onStateChange();
   }
+
+  function nextPond() {
+    const res = step(ui.run, { type: 'skipReward' }, content);
+    if (res.events[0].type === 'invalid') return;
+    ui.run = res.run;
+    replaceScreens(null);
+    autoSelectSlot();
+    syncScene();
+    pondBanner();
+    onStateChange();
+  }
+
+  const ACTIONS = {
+    newRun: () => startRun(),
+    howto: () => openScreen('howto'),
+    back: () => back(),
+    resume: () => back(),
+    toTitle: () => toTitle(),
+    abandon: () => openScreen('confirmAbandon'),
+    doAbandon: () => {
+      const res = step(ui.run, { type: 'abandon' }, content);
+      ui.run = res.run;
+      onStateChange();
+      replaceScreens('runEnd');
+    },
+    nextPond: () => nextPond(),
+  };
 
   $('screen').addEventListener('click', (e) => {
     const b = e.target.closest('[data-act]');
-    if (!b) return;
-    if (b.dataset.act === 'start') startRun();
+    if (!b || b.disabled) return;
+    const fn = ACTIONS[b.dataset.act];
+    if (fn) fn(b.dataset.arg);
   });
 
   // --------------------------------------------------------------- input
@@ -409,9 +612,40 @@ export function createApp(content) {
     if (b) selectSlot(Number(b.dataset.slot));
   });
   $('btn-end').addEventListener('click', () => endTurn());
+  $('btn-undo').addEventListener('click', () => undo());
+  $('btn-menu').addEventListener('click', () => { if (ui.run && !ui.stack.length) openScreen('pause'); });
+  $('btn-tip').hidden = true;
+
+  function moveCursor(dir) {
+    const g = renderer.grid;
+    let cur = scene.focus >= 0 ? scene.focus : -1;
+    if (cur < 0) {
+      cur = g.indexOf(0, -2);
+      ui.anchorY = renderer.pos(cur).y;
+      setFocus(cur);
+      return;
+    }
+    const c = g.cells[cur];
+    const cand = {
+      up: [[0, -1]], down: [[0, 1]],
+      left: [[-1, 0], [-1, 1]], right: [[1, -1], [1, 0]],
+    }[dir].map(([dq, dr]) => g.indexOf(c.q + dq, c.r + dr)).filter((i) => i >= 0);
+    if (!cand.length) return;
+    let best = cand[0];
+    if (cand.length > 1 && ui.anchorY !== null) {
+      best = cand.reduce((a, b) => (Math.abs(renderer.pos(a).y - ui.anchorY) <= Math.abs(renderer.pos(b).y - ui.anchorY) ? a : b));
+    }
+    const keep = ui.anchorY;
+    scene.focus = best;
+    refreshForecast();
+    if (dir === 'left' || dir === 'right') ui.anchorY = keep;
+    else ui.anchorY = renderer.pos(best).y;
+  }
 
   bindInput(canvas, {
-    anyInput() {},
+    anyInput() {
+      if (ui.busy) ui.speed = 3;
+    },
     hover(x, y) {
       ui.lastType = 'mouse';
       if (!playable()) return;
@@ -426,31 +660,44 @@ export function createApp(content) {
       else setFocus(cell);
     },
     key(cmd, arg) {
+      if (cmd === 'menu') {
+        const top = ui.stack[ui.stack.length - 1];
+        if (top && !MODAL.has(top)) back();
+        else if (ui.run && !ui.stack.length) openScreen('pause');
+        return true;
+      }
+      if (ui.stack.length) return false;
+      ui.lastType = 'key';
       if (cmd === 'slot') return selectSlot(arg);
+      if (cmd === 'nextSlot') return selectSlot((ui.slot + 1) % (ui.run ? ui.run.slots.length : 1));
+      if (!playable()) return cmd === 'end' || cmd === 'throw';
       if (cmd === 'end') return endTurn();
+      if (cmd === 'undo') return undo();
+      if (cmd === 'throw') return scene.focus >= 0 ? tryThrow(scene.focus) : moveCursor('up');
+      if (cmd === 'intents') {
+        scene.showIntents = !scene.showIntents;
+        toast(scene.showIntents ? 'Absichten sichtbar' : 'Absichten ausgeblendet', true);
+        return true;
+      }
+      if (['up', 'down', 'left', 'right'].includes(cmd)) return moveCursor(cmd);
       return false;
     },
   });
+  window.addEventListener('pointerup', () => { if (!ui.busy) ui.speed = 1; });
+  window.addEventListener('keyup', () => { if (!ui.busy) ui.speed = 1; });
 
   // title ambience: random ripples meeting on the title screen
   let nextDrop = 0;
   function titleAmbience(t) {
-    if (t < nextDrop) {
-      scene.visTick = t * 1.2;
-      return;
-    }
-    nextDrop = t + 0.9 + Math.random() * 0.8;
+    scene.visTick = t * 1.2;
+    if (t < nextDrop) return;
+    nextDrop = t + 0.7 + Math.random() * 0.7;
     const g = renderer.grid;
     const origin = 1 + Math.floor(Math.random() * (g.size - 1));
-    scene.titleRipples.push({ id: Math.random(), origin, born: t * 1.2, profile: [1, 1, 1, 1, 1, 1], owner: 'player', gen: 0 });
-    scene.titleRipples = scene.titleRipples.filter((r) => t * 1.2 - r.born < 7);
-    scene.visTick = t * 1.2;
+    scene.titleRipples.push({ id: Math.random(), origin, born: t * 1.2, profile: [1, 1, 1, 1, 1, 1, 1], owner: 'player', gen: 0 });
+    scene.titleRipples = scene.titleRipples.filter((r) => t * 1.2 - r.born < 8);
   }
 
-  resize();
-  requestAnimationFrame(frame);
-  document.getElementById('app').classList.remove('booting');
-  showTitle();
   // debug/automation handle (used by tools/smoke.mjs)
   function debugAutoTurn() {
     if (!playable()) return;
@@ -459,12 +706,20 @@ export function createApp(content) {
     if (e) {
       const ns = g.neighbors[e.cell].filter((n) => n > 0 && !ui.run.pond.rocks.includes(n));
       for (let i = 0; i < 2 && i < ns.length; i++) {
-        selectSlot(ui.run.slots.findIndex((s) => s.cd === 0));
-        tryThrow(ns[i * 2 % ns.length]);
+        selectSlot(Math.max(0, ui.run.slots.findIndex((s) => s.cd === 0)));
+        tryThrow(ns[(i * 2) % ns.length]);
       }
     }
     endTurn();
   }
 
-  return { get run() { return ui.run; }, scene, startRun, debugAutoTurn };
+  resize();
+  requestAnimationFrame(frame);
+  $('app').classList.remove('booting');
+  toTitle();
+  return {
+    get run() { return ui.run; },
+    get stack() { return ui.stack.slice(); },
+    scene, startRun, debugAutoTurn, act: (name, arg) => ACTIONS[name] && ACTIONS[name](arg),
+  };
 }

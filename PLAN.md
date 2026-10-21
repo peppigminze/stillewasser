@@ -7,7 +7,7 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
 
 - [x] **M1 — Fundament**: Projektgerüst, Hex-Raster, Wellenfeld-Logik, Canvas-Grundrenderer.
       Spielbar: Sandkasten-Teich, Steine werfen, Interferenz sehen, ein paar Gegner besiegen.
-- [ ] **M2 — Kernschleife**: Kompletter Einzelkampf: Gegner-Absichten, Bewegung, Bisse, Spawns,
+- [x] **M2 — Kernschleife**: Kompletter Einzelkampf: Gegner-Absichten, Bewegung, Bisse, Spawns,
       Sieg/Niederlage, Vorschau (jetzt/nächster Zug), Rückgängig, Abklingzeiten, Touch + Tastatur.
 - [ ] **M3 — Laufstruktur**: 3 Akte × 3 Teiche, Bosse, Gaben-Auswahl, Speicherstand + Fortsetzen.
 - [ ] **M4 — Inhalt & Simulation**: Alle V1-Steine/Kreaturen/Talismane, Simulations-Bot (Node),
@@ -23,6 +23,10 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
   Canvas-Renderer (Tusche-Look, Ringe als geglättete Pfade, Wogen-Marker, Absichtspfeile), Titelbildschirm,
   spielbarer Teich mit Wurf/Zugende/Animationen. Smoke-Test (`tools/smoke.mjs`) mit Screenshots desktop+mobil ok.
 
+- **M2 erledigt:** Rückgängig (Knopf + Z), Tastatur-Cursor (Pfeile/WASD, Enter, Leertaste, 1–4, Tab, I, Esc),
+  Info-Panel (Kreatur, Absicht, Wurf-Vorschau, Fehler), Pause-Menü, Anleitung, Teich-geschafft- und
+  Lauf-Ende-Screen, Banner pro Teich, Licht-Pips animiert, Ringe runder gezeichnet. Browser-Skript `tools/play-m2.mjs`.
+
 ## Nächster Schritt
 
-M2: Rückgängig-Knopf, Tastatur-Cursor, Info-Panel zu Kreaturen/Feldern, Menü/Pause, Sieg/Niederlage-Flow pro Teich.
+M3: Gaben-Screen (Stein/Talisman/Licht, Ersetzen bei 4 Steinen), Akt-Übergänge, Speicherstand (`core/save.js`, `ui/storage.js`), Fortsetzen im Titel.

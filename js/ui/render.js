@@ -12,6 +12,7 @@ export const PALETTES = {
 };
 
 const TAU = Math.PI * 2;
+const ROUND = 0.6; // 0 = exact hex ring, 1 = perfect circle
 const COL = {
   wave: '#f3ead2', waveHi: '#fff7df', death: '#ffe2a6', dark: '#a77bff', darkHi: '#c9a6ff',
   gold: '#ffd27a', violet: '#b48cff', red: '#ff5b45', teal: '#7fe3d0',
@@ -395,9 +396,17 @@ export function createRenderer(canvas, content) {
     const strong = Math.abs(amp) >= 2;
     const a = alphaMul * (0.4 + 0.6 * life) * Math.min(1, f * 1.6);
     const segs = segmentsFor(water, rp.origin, k);
+    // pull points toward a circle so rings read as water, not hexagons
+    const ideal = k * S * 1.62;
     ctx.beginPath();
     for (const seg of segs) {
-      const pts = seg.cells.map((c) => [O.x + (centers[c].x - O.x) * f, O.y + (centers[c].y - O.y) * f]);
+      const pts = seg.cells.map((c) => {
+        const vx = centers[c].x - O.x;
+        const vy = centers[c].y - O.y;
+        const d = Math.hypot(vx, vy) || 1;
+        const r = (d + (ideal - d) * ROUND) * f;
+        return [O.x + (vx / d) * r, O.y + (vy / d) * r];
+      });
       tracePath(pts, seg.closed);
     }
     ctx.strokeStyle = hexA(color, a * 0.22);
