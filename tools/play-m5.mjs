@@ -1,0 +1,44 @@
+// Smoke script: meta screens, buying, keeper select, run end booking.
+export default async function (page, { outDir, tag }) {
+  const shot = (n) => page.screenshot({ path: `${outDir}/${tag}-${n}.png` });
+  await page.evaluate(() => localStorage.setItem('stillewasser.meta.v1', JSON.stringify({ v: 1, pearls: 120, maxPhase: 2, seen: { enemies: ['tintling', 'unke', 'laeufer', 'kroetenmutter'] }, tutorialDone: true, stats: { runs: 3 } })));
+  await page.reload();
+  await page.waitForFunction(() => window.__stille);
+  await page.waitForTimeout(500);
+  await shot('m5-1-title');
+  await page.click('[data-act="shrine"]');
+  await page.waitForTimeout(300);
+  await page.click('[data-act="shrineTab"][data-arg="keeper"]');
+  await page.waitForTimeout(200);
+  await page.click('[data-act="buy"][data-arg="keeper:fischerin"]');
+  await page.waitForTimeout(300);
+  await shot('m5-2-shrine');
+  await page.click('[data-act="back"]');
+  await page.click('[data-act="codex"]');
+  await page.waitForTimeout(300);
+  await shot('m5-3-codex');
+  await page.click('[data-act="back"]');
+  await page.click('[data-act="settings"]');
+  await page.waitForTimeout(200);
+  await page.click('[data-setting="reduced"]');
+  await shot('m5-4-settings');
+  await page.click('[data-act="back"]');
+  await page.click('[data-act="newRun"]');
+  await page.waitForTimeout(300);
+  await page.click('[data-act="selKeeper"][data-arg="fischerin"]');
+  await page.click('[data-act="selPhase"][data-arg="2"]');
+  await page.waitForTimeout(200);
+  await shot('m5-5-keeper');
+  await page.click('[data-act="startRun"]');
+  await page.waitForTimeout(2500);
+  await shot('m5-6-run');
+  const r = await page.evaluate(() => ({ keeper: window.__stille.run.keeper, phase: window.__stille.run.phase, light: window.__stille.run.light }));
+  console.log('run', JSON.stringify(r));
+  await page.keyboard.press('Escape');
+  await page.click('[data-act="abandon"]');
+  await page.click('[data-act="doAbandon"]');
+  await page.waitForTimeout(400);
+  await shot('m5-7-end');
+  const meta = await page.evaluate(() => JSON.parse(localStorage.getItem('stillewasser.meta.v1')));
+  console.log('meta', JSON.stringify({ pearls: meta.pearls, runs: meta.stats.runs, keepers: meta.unlocked.keepers, reduced: meta.settings.reduced }));
+}

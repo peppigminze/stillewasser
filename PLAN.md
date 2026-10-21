@@ -12,7 +12,7 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
 - [x] **M3 — Laufstruktur**: 3 Akte × 3 Teiche, Bosse, Gaben-Auswahl, Speicherstand + Fortsetzen.
 - [x] **M4 — Inhalt & Simulation**: Alle V1-Steine/Kreaturen/Talismane, Simulations-Bot (Node),
       Balance-Report, Balance-Anpassungen (BALANCE.md).
-- [ ] **M5 — Meta**: Perlen, Schrein (Freischaltungen), Hüter, Schwierigkeitsstufen, Chronik/Statistik, Einstellungen.
+- [x] **M5 — Meta**: Perlen, Schrein (Freischaltungen), Hüter, Schwierigkeitsstufen, Chronik/Statistik, Einstellungen.
 - [ ] **M6 — Gefühl**: Juice-Pass: Partikel, Tweens, Screenshake, Kettenzähler, WebAudio-Synthese, Titel-Animation.
 - [ ] **M7 — Einstieg**: Tutorial/Hinweise (erste 60 s), Tipp-Knopf, Täglicher Teich, Mobile-Feinschliff.
 - [ ] **M8 — Abschluss**: Polish, Code-Review, Edge-Cases, Ladezeit, Speicherstand-Robustheit, README.
@@ -36,6 +36,11 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
   Balance in 9 Iterationen (siehe BALANCE.md): neue Regel „keine Würfe auf Schatten“, Zickzack-Bewegung,
   kürzere Wellen, Akt-III-Nebel. Endstand: brute 0 %, greedy 49 %, planner 81 %. 47 Tests.
 
+- **M5 erledigt:** `core/meta.js` (Perlen-Formel, Freischaltungen, Mondphasen, Statistik, Tages-Bestwert, Sanitizing
+  gegen kaputte Saves) + Tests; Screens: Hüter-/Phasenwahl, Schrein (Kauf), Chronik (Kreaturen mit Canvas-Porträts,
+  Steine, Talismane, Statistik), Einstellungen (Klang, Ambiente, Lautstärke, weniger Bewegung, schnell, Vibration,
+  Hinweise, Reset). Lernteich beim allerersten Lauf. 52 Tests.
+
 ## Nächster Schritt
 
-M5: `core/meta.js` (Perlen, Freischaltungen, Statistiken, Sanitizing), Schrein-, Chronik-, Hüter-/Phasenwahl- und Einstellungs-Screens.
+M6: `ui/audio.js` (WebAudio-Synthese: Platsch, Glocken pentatonisch, Biss, Tod, UI, Ambiente), Juice-Pass (Steinflug, Ketten-Musik, Mond-Reaktion, Hit-Stop, Teich-Übergänge).

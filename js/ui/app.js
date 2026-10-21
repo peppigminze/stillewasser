@@ -9,11 +9,13 @@ import { createFx } from './fx.js';
 import { bindInput } from './input.js';
 import * as screens from './screens.js';
 import { serializeRun, deserializeRun } from '../core/save.js';
-import { KEYS, loadJSON, saveJSON, remove } from './storage.js';
+import { KEYS, loadJSON, saveJSON, remove, persistent } from './storage.js';
+import { sanitizeMeta, poolFor, defaultPool, isUnlocked, buy, applyRunEnd, markSeen, affordable, defaultMeta } from '../core/meta.js';
+import { drawCreature } from './render.js';
 
 const esc = screens.esc;
 // features that are switched on milestone by milestone
-const FEATURES = { daily: false, shrine: false, codex: false, settings: false };
+const FEATURES = { daily: false, shrine: true, codex: true, settings: true, tip: false };
 // screens that cannot be closed with Esc
 const MODAL = new Set(['title', 'runEnd', 'reward']);
 
@@ -27,7 +29,34 @@ export function createApp(content) {
     focus: -1, cursor: -1, tip: -1, moonLight: 1, moonHurt: 0, palette: 'title',
     showIntents: true, showNext: true, expiring: [], titleRipples: [],
   };
-  const ui = { run: null, slot: 0, busy: false, speed: 1, lastType: 'mouse', anchorY: null, prevLight: null, stack: [] };
+  const ui = {
+    run: null, slot: 0, busy: false, speed: 1, baseSpeed: 1, lastType: 'mouse', anchorY: null, prevLight: null, stack: [],
+    meta: sanitizeMeta(loadJSON(KEYS.meta), content), selKeeper: 'moench', selPhase: 0, shrineTab: 'stone', codexTab: 'creatures',
+    summary: null,
+  };
+  ui.selKeeper = ui.meta.lastKeeper;
+  ui.selPhase = ui.meta.lastPhase;
+
+  function saveMeta() {
+    saveJSON(KEYS.meta, ui.meta);
+  }
+
+  function seen(kind, ids) {
+    const next = markSeen(ui.meta, kind, ids);
+    if (next !== ui.meta) {
+      ui.meta = next;
+      saveMeta();
+    }
+  }
+
+  function applySettings() {
+    const st = ui.meta.settings;
+    fx.reduced = st.reduced;
+    $('app').classList.toggle('reduced', st.reduced);
+    ui.baseSpeed = st.fast ? 1.8 : 1;
+    ui.speed = ui.baseSpeed;
+    $('btn-tip').hidden = !FEATURES.tip || !st.tips || !!(ui.run && ui.run.daily);
+  }
   const tweens = [];
 
   // ------------------------------------------------------------ timing
@@ -111,6 +140,9 @@ export function createApp(content) {
     scene.palette = paletteFor(run);
     scene.moonLight = run.light / Math.max(1, run.maxLight);
     syncActors(run.pond);
+    seen('enemies', [...new Set(run.pond.enemies.map((e) => e.type))]);
+    seen('stones', run.slots.map((s) => s.stone));
+    seen('talismans', run.talismans);
     refreshForecast();
     renderHud();
   }
@@ -343,6 +375,7 @@ export function createApp(content) {
     await animateTurn(old, res);
     ui.run = res.run;
     ui.busy = false;
+    ui.speed = ui.baseSpeed;
     autoSelectSlot();
     if (ui.lastType === 'key') scene.focus = keepFocus;
     syncScene();
@@ -421,6 +454,7 @@ export function createApp(content) {
         } else {
           scene.moonHurt = 1;
           fx.addShake(7);
+          if (ui.meta.settings.vibrate && navigator.vibrate) navigator.vibrate(40);
           fx.addFlash('#ff3b2a', 0.18);
           fx.text(m.x, m.y - S * 1.1, `−${e.dmg} Licht`, '#ff6a4a', S * 0.7);
           scene.moonLight = e.light / Math.max(1, old.maxLight);
@@ -477,11 +511,24 @@ export function createApp(content) {
   function afterTurn(res) {
     const run = res.run;
     if (run.mode === 'lost' || run.mode === 'won') {
+      bookRunEnd();
       setTimeout(() => openScreen('runEnd'), 650);
     } else if (run.mode === 'reward') {
       ui.clearHeal = res.events.filter((e) => e.type === 'heal' && e.reason === 'pond').reduce((s, e) => s + e.amount, 0);
+      seen('stones', run.reward.options.filter((o) => o.kind === 'stone').map((o) => o.id));
+      seen('talismans', run.reward.options.filter((o) => o.kind === 'talisman').map((o) => o.id));
       setTimeout(() => openScreen('reward'), 500);
     }
+  }
+
+  function bookRunEnd() {
+    const run = ui.run;
+    if (!run || ui.summary) return;
+    const res = applyRunEnd(ui.meta, run, content);
+    ui.meta = res.meta;
+    ui.summary = res;
+    saveMeta();
+    remove(KEYS.run);
   }
 
   function savedRun() {
@@ -502,8 +549,18 @@ export function createApp(content) {
       case 'title': {
         const saved = savedRun();
         const label = saved ? `${content.acts[saved.act].sub} · ${saved.pond && saved.pond.kind === 'boss' ? 'Boss' : `Teich ${saved.step + 1}`} · ${saved.light} Licht${saved.daily ? ' · Täglich' : ''}` : '';
-        return screens.titleScreen({ canContinue: !!saved, continueLabel: label, pearls: 0, dailyDone: false, features: FEATURES });
+        return screens.titleScreen({ canContinue: !!saved, continueLabel: label, pearls: ui.meta.pearls, dailyDone: ui.meta.daily.date === todayKey(), features: FEATURES, shrineBadge: affordable(ui.meta, content).length > 0 });
       }
+      case 'keeper':
+        return screens.keeperScreen({ content, meta: ui.meta, isUnlocked, selKeeper: ui.selKeeper, selPhase: ui.selPhase });
+      case 'shrine':
+        return screens.shrineScreen({ content, meta: ui.meta, tab: ui.shrineTab, isUnlocked });
+      case 'codex':
+        return screens.codexScreen({ content, meta: ui.meta, tab: ui.codexTab });
+      case 'settings':
+        return screens.settingsScreen({ settings: ui.meta.settings, persistent: persistent() });
+      case 'confirmReset':
+        return screens.confirmScreen('Wirklich allen Fortschritt löschen? Perlen, Freischaltungen und Statistik sind dann weg.', 'doReset');
       case 'reward': {
         const pond = run.pond;
         return screens.rewardScreen({
@@ -527,7 +584,13 @@ export function createApp(content) {
           : run.result && run.result.reason === 'abandon' ? 'Du hast den Lauf aufgegeben.'
             : run.result && run.result.reason === 'dawn' ? 'Der Morgen graute, doch der Teich blieb dunkel.'
               : 'Das letzte Licht wurde verschlungen.';
-        return screens.runEndScreen({ won, stats: run.stats, pearls: 0, newPhase: '', score: run.stats.score, best: 0, daily: run.daily, reasonText: reason });
+        const sm = ui.summary || {};
+        const can = affordable(ui.meta, content);
+        return screens.runEndScreen({
+          won, stats: run.stats, pearls: sm.pearls || 0, newPhase: sm.newPhase ? sm.newPhase.name : '', score: run.stats.score,
+          best: ui.meta.daily.best, daily: run.daily, reasonText: reason,
+          unlockedText: can.length ? `Im Schrein wartet: ${can.slice(0, 3).map((c) => c.name).join(', ')}` : '',
+        });
       }
       default:
         return '';
@@ -546,6 +609,15 @@ export function createApp(content) {
     el.innerHTML = renderScreen(name);
     el.hidden = false;
     el.scrollTop = 0;
+    for (const c of el.querySelectorAll('canvas[data-creature]')) {
+      const def = content.enemies[c.dataset.creature];
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      c.width = 120 * dpr;
+      c.height = 76 * dpr;
+      const cx = c.getContext('2d');
+      cx.scale(dpr, dpr);
+      drawCreature(cx, def, 60, 40, 46, 1.3, { id: 3, hp: def.hp, maxHp: def.hp, heading: 0 });
+    }
     const first = el.querySelector('.btn.primary, .btn');
     if (first && ui.lastType === 'key') first.focus();
   }
@@ -568,6 +640,11 @@ export function createApp(content) {
     if (!ui.stack.length) refreshForecast();
   }
 
+  function todayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   function toTitle() {
     ui.run = null;
     ui.prevLight = null;
@@ -577,12 +654,22 @@ export function createApp(content) {
   }
 
   function startRun(opts = {}) {
-    ui.run = newRun({ seed: opts.seed || String(Date.now()), keeper: opts.keeper || 'moench', phase: opts.phase || 0, ...opts }, content);
+    const pool = opts.daily ? defaultPool(content) : poolFor(ui.meta, content);
+    const keeper = opts.keeper || ui.selKeeper;
+    const phase = opts.daily ? 0 : opts.phase ?? ui.selPhase;
+    const tutorial = !opts.daily && !ui.meta.tutorialDone && ui.meta.stats.runs === 0;
+    ui.run = newRun({ seed: opts.seed || String(Date.now()), keeper, phase, tutorial, ...pool, ...opts }, content);
+    if (!opts.daily) {
+      ui.meta = { ...ui.meta, lastKeeper: keeper, lastPhase: phase };
+      saveMeta();
+    }
+    ui.summary = null;
     ui.slot = 0;
     ui.prevLight = null;
     fx.clear();
     replaceScreens(null);
     setInGame(true);
+    applySettings();
     syncScene();
     pondBanner();
     onStateChange();
@@ -618,11 +705,13 @@ export function createApp(content) {
       return;
     }
     ui.run = run;
+    ui.summary = null;
     ui.slot = 0;
     ui.prevLight = null;
     fx.clear();
     replaceScreens(null);
     setInGame(true);
+    applySettings();
     autoSelectSlot();
     syncScene();
     if (run.mode === 'reward') openScreen('reward');
@@ -630,7 +719,37 @@ export function createApp(content) {
   }
 
   const ACTIONS = {
-    newRun: () => startRun(),
+    newRun: () => {
+      const keepers = content.keeperList.filter((k) => isUnlocked(ui.meta, 'keeper', k.id, content));
+      if (keepers.length > 1 || ui.meta.maxPhase > 0) openScreen('keeper');
+      else startRun({ keeper: 'moench', phase: 0 });
+    },
+    selKeeper: (id) => { ui.selKeeper = id; showTop(); },
+    selPhase: (p) => { ui.selPhase = Number(p); showTop(); },
+    startRun: () => startRun(),
+    shrine: () => { if (ui.stack[ui.stack.length - 1] === 'keeper') ui.stack.pop(); openScreen('shrine'); },
+    shrineTab: (t) => { ui.shrineTab = t; showTop(); },
+    buy: (arg) => {
+      const [kind, id] = arg.split(':');
+      const res = buy(ui.meta, kind, id, content);
+      if (res.error) return toast(res.error);
+      ui.meta = res.meta;
+      saveMeta();
+      toast(`Freigeschaltet: ${({ stone: content.stones, talisman: content.talismans, keeper: content.keepers }[kind][id]).name}`, true);
+      showTop();
+    },
+    codex: () => openScreen('codex'),
+    codexTab: (t) => { ui.codexTab = t; showTop(); },
+    settings: () => openScreen('settings'),
+    resetAsk: () => openScreen('confirmReset'),
+    doReset: () => {
+      ui.meta = defaultMeta();
+      saveMeta();
+      remove(KEYS.run);
+      applySettings();
+      toast('Fortschritt gelöscht.', true);
+      toTitle();
+    },
     howto: () => openScreen('howto'),
     back: () => back(),
     resume: () => back(),
@@ -639,6 +758,7 @@ export function createApp(content) {
     doAbandon: () => {
       const res = step(ui.run, { type: 'abandon' }, content);
       ui.run = res.run;
+      bookRunEnd();
       onStateChange();
       replaceScreens('runEnd');
     },
@@ -665,6 +785,15 @@ export function createApp(content) {
     if (fn) fn(b.dataset.arg);
   });
 
+  $('screen').addEventListener('input', (e) => {
+    const key = e.target.dataset && e.target.dataset.setting;
+    if (!key) return;
+    const value = e.target.type === 'checkbox' ? e.target.checked : Number(e.target.value);
+    ui.meta = { ...ui.meta, settings: { ...ui.meta.settings, [key]: value } };
+    saveMeta();
+    applySettings();
+  });
+
   // --------------------------------------------------------------- input
   $('slots').addEventListener('click', (e) => {
     const b = e.target.closest('[data-slot]');
@@ -673,7 +802,7 @@ export function createApp(content) {
   $('btn-end').addEventListener('click', () => endTurn());
   $('btn-undo').addEventListener('click', () => undo());
   $('btn-menu').addEventListener('click', () => { if (ui.run && !ui.stack.length) openScreen('pause'); });
-  $('btn-tip').hidden = true;
+  
 
   function moveCursor(dir) {
     const g = renderer.grid;
@@ -742,8 +871,8 @@ export function createApp(content) {
       return false;
     },
   });
-  window.addEventListener('pointerup', () => { if (!ui.busy) ui.speed = 1; });
-  window.addEventListener('keyup', () => { if (!ui.busy) ui.speed = 1; });
+  window.addEventListener('pointerup', () => { if (!ui.busy) ui.speed = ui.baseSpeed; });
+  window.addEventListener('keyup', () => { if (!ui.busy) ui.speed = ui.baseSpeed; });
 
   // title ambience: random ripples meeting on the title screen
   let nextDrop = 0;
@@ -772,6 +901,7 @@ export function createApp(content) {
     endTurn();
   }
 
+  applySettings();
   resize();
   requestAnimationFrame(frame);
   $('app').classList.remove('booting');
