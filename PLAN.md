@@ -9,7 +9,7 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
       Spielbar: Sandkasten-Teich, Steine werfen, Interferenz sehen, ein paar Gegner besiegen.
 - [x] **M2 — Kernschleife**: Kompletter Einzelkampf: Gegner-Absichten, Bewegung, Bisse, Spawns,
       Sieg/Niederlage, Vorschau (jetzt/nächster Zug), Rückgängig, Abklingzeiten, Touch + Tastatur.
-- [ ] **M3 — Laufstruktur**: 3 Akte × 3 Teiche, Bosse, Gaben-Auswahl, Speicherstand + Fortsetzen.
+- [x] **M3 — Laufstruktur**: 3 Akte × 3 Teiche, Bosse, Gaben-Auswahl, Speicherstand + Fortsetzen.
 - [ ] **M4 — Inhalt & Simulation**: Alle V1-Steine/Kreaturen/Talismane, Simulations-Bot (Node),
       Balance-Report, Balance-Anpassungen (BALANCE.md).
 - [ ] **M5 — Meta**: Perlen, Schrein (Freischaltungen), Hüter, Schwierigkeitsstufen, Chronik/Statistik, Einstellungen.
@@ -27,6 +27,10 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
   Info-Panel (Kreatur, Absicht, Wurf-Vorschau, Fehler), Pause-Menü, Anleitung, Teich-geschafft- und
   Lauf-Ende-Screen, Banner pro Teich, Licht-Pips animiert, Ringe runder gezeichnet. Browser-Skript `tools/play-m2.mjs`.
 
+- **M3 erledigt:** Gaben-Screen (Karten mit Profil-Balken), Ersetzen-Dialog bei vollem Beutel, Akt-Banner +
+  Palettenwechsel, Speicherstand nach jeder Aktion (`core/save.js` validiert defensiv, `ui/storage.js` fällt auf
+  Memory zurück), „Fortsetzen“ im Titel. 31 Tests (u. a. kompletter Lauf bis Sieg, Save-Roundtrip, korrupte Saves).
+
 ## Nächster Schritt
 
-M3: Gaben-Screen (Stein/Talisman/Licht, Ersetzen bei 4 Steinen), Akt-Übergänge, Speicherstand (`core/save.js`, `ui/storage.js`), Fortsetzen im Titel.
+M4: `core/ai.js` (Strategien random/brute/greedy/planner), `sim/sim.mjs` (tausende Läufe, Worker-Threads), Report → BALANCE.md, Balance anpassen.

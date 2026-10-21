@@ -8,12 +8,14 @@ import { createRenderer } from './render.js';
 import { createFx } from './fx.js';
 import { bindInput } from './input.js';
 import * as screens from './screens.js';
+import { serializeRun, deserializeRun } from '../core/save.js';
+import { KEYS, loadJSON, saveJSON, remove } from './storage.js';
 
 const esc = screens.esc;
 // features that are switched on milestone by milestone
 const FEATURES = { daily: false, shrine: false, codex: false, settings: false };
 // screens that cannot be closed with Esc
-const MODAL = new Set(['title', 'runEnd', 'pondClear', 'reward', 'replace']);
+const MODAL = new Set(['title', 'runEnd', 'reward']);
 
 export function createApp(content) {
   const $ = (id) => document.getElementById(id);
@@ -477,34 +479,48 @@ export function createApp(content) {
     if (run.mode === 'lost' || run.mode === 'won') {
       setTimeout(() => openScreen('runEnd'), 650);
     } else if (run.mode === 'reward') {
-      setTimeout(() => openScreen('pondClear'), 500);
+      ui.clearHeal = res.events.filter((e) => e.type === 'heal' && e.reason === 'pond').reduce((s, e) => s + e.amount, 0);
+      setTimeout(() => openScreen('reward'), 500);
     }
   }
 
+  function savedRun() {
+    return deserializeRun(loadJSON(KEYS.run), content);
+  }
+
   function onStateChange() {
-    // persistence hook (M3)
+    const run = ui.run;
+    if (!run) return;
+    if (run.mode === 'pond' || run.mode === 'reward') saveJSON(KEYS.run, serializeRun(run));
+    else remove(KEYS.run);
   }
 
   // ------------------------------------------------------------- screens
   function renderScreen(name) {
     const run = ui.run;
     switch (name) {
-      case 'title':
-        return screens.titleScreen({ canContinue: false, continueLabel: '', pearls: 0, dailyDone: false, features: FEATURES });
+      case 'title': {
+        const saved = savedRun();
+        const label = saved ? `${content.acts[saved.act].sub} · ${saved.pond && saved.pond.kind === 'boss' ? 'Boss' : `Teich ${saved.step + 1}`} · ${saved.light} Licht${saved.daily ? ' · Täglich' : ''}` : '';
+        return screens.titleScreen({ canContinue: !!saved, continueLabel: label, pearls: 0, dailyDone: false, features: FEATURES });
+      }
+      case 'reward': {
+        const pond = run.pond;
+        return screens.rewardScreen({
+          run, content,
+          title: pond.kind === 'boss' ? `${content.enemies[pond.boss].name} ist besiegt` : 'Der Teich ist still',
+          sub: pond.kind === 'tutorial' ? 'Lernteich' : `${content.acts[run.act].sub} · ${content.acts[run.act].name}`,
+          healText: ui.clearHeal ? `Der Mond schöpft Kraft: +${ui.clearHeal} Licht` : '',
+        });
+      }
+      case 'replace':
+        return screens.replaceScreen({ run, content, stoneId: run.reward.options[ui.pendingPick].id });
       case 'pause':
         return screens.pauseScreen({ daily: run && run.daily, features: FEATURES });
       case 'howto':
         return screens.howtoScreen();
       case 'confirmAbandon':
         return screens.confirmScreen('Lauf wirklich aufgeben?', 'doAbandon');
-      case 'pondClear': {
-        const pond = run.pond;
-        return screens.pondClearScreen({
-          title: pond.kind === 'boss' ? `${content.enemies[pond.boss].name} ist besiegt` : 'Der Teich ist still',
-          sub: content.acts[run.act].name,
-          healText: '',
-        });
-      }
       case 'runEnd': {
         const won = run.mode === 'won';
         const reason = won ? 'Alle drei Teiche sind befreit. Der Mond leuchtet.'
@@ -572,15 +588,45 @@ export function createApp(content) {
     onStateChange();
   }
 
-  function nextPond() {
-    const res = step(ui.run, { type: 'skipReward' }, content);
-    if (res.events[0].type === 'invalid') return;
+  function takeReward(action) {
+    const res = step(ui.run, action, content);
+    if (res.events[0].type === 'invalid') {
+      toast(res.events[0].reason);
+      return;
+    }
     ui.run = res.run;
+    ui.clearHeal = 0;
     replaceScreens(null);
     autoSelectSlot();
+    fx.clear();
     syncScene();
-    pondBanner();
+    const actStart = res.events.find((e) => e.type === 'actStart');
+    if (actStart) {
+      const act = content.acts[ui.run.act];
+      banner(act.sub, act.name, 'Ein neuer Teich, eine neue Nacht');
+      setTimeout(() => pondBanner(), 2300);
+    } else pondBanner();
     onStateChange();
+  }
+
+  function continueRun() {
+    const run = savedRun();
+    if (!run) {
+      toast('Kein Spielstand gefunden.');
+      remove(KEYS.run);
+      replaceScreens('title');
+      return;
+    }
+    ui.run = run;
+    ui.slot = 0;
+    ui.prevLight = null;
+    fx.clear();
+    replaceScreens(null);
+    setInGame(true);
+    autoSelectSlot();
+    syncScene();
+    if (run.mode === 'reward') openScreen('reward');
+    else pondBanner();
   }
 
   const ACTIONS = {
@@ -596,7 +642,20 @@ export function createApp(content) {
       onStateChange();
       replaceScreens('runEnd');
     },
-    nextPond: () => nextPond(),
+    continue: () => continueRun(),
+    pick: (arg) => {
+      const i = Number(arg);
+      const opt = ui.run.reward && ui.run.reward.options[i];
+      if (!opt) return;
+      if (opt.kind === 'stone' && ui.run.slots.length >= content.rules.maxSlots) {
+        ui.pendingPick = i;
+        openScreen('replace');
+        return;
+      }
+      takeReward({ type: 'pickReward', index: i });
+    },
+    replace: (arg) => takeReward({ type: 'pickReward', index: ui.pendingPick, replace: Number(arg) }),
+    skip: () => takeReward({ type: 'skipReward' }),
   };
 
   $('screen').addEventListener('click', (e) => {
@@ -717,7 +776,19 @@ export function createApp(content) {
   requestAnimationFrame(frame);
   $('app').classList.remove('booting');
   toTitle();
+  function debugWinPond() {
+    if (!playable()) return;
+    const r = structuredClone(ui.run);
+    r.pond.enemies = [];
+    r.pond.schedule = [];
+    r.pond.telegraphs = [];
+    ui.run = r;
+    syncScene();
+    endTurn();
+  }
+
   return {
+    debugWinPond,
     get run() { return ui.run; },
     get stack() { return ui.stack.slice(); },
     scene, startRun, debugAutoTurn, act: (name, arg) => ACTIONS[name] && ACTIONS[name](arg),

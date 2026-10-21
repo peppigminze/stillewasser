@@ -86,8 +86,48 @@ export function runEndScreen({ won, stats, pearls, newPhase, score, best, daily,
     <button class="btn" data-act="toTitle">Zum Titel</button></div></div>`;
 }
 
-export function pondClearScreen({ title, sub, healText }) {
+function stoneCard(st, i, extra = '') {
+  const flags = [];
+  if (st.cooldown) flags.push(`Abklingzeit ${st.cooldown}`);
+  else flags.push('jeden Zug');
+  if (st.free) flags.push('kostet keinen Wurf');
+  return `<button class="card" data-act="pick" data-arg="${i}">${extra}
+    <span class="kind stone">Stein</span><span class="cg">${st.glyph}</span>
+    <span class="cn">${esc(st.name)}</span><span class="cd">${esc(st.desc)}</span>
+    <span class="cd" style="color:var(--muted);font-size:12px">${flags.join(' · ')}</span>
+    <span class="prof">${profileBars(st.profile)}</span></button>`;
+}
+
+export function rewardScreen({ run, content, title, sub, healText }) {
+  const cards = run.reward.options.map((o, i) => {
+    if (o.kind === 'stone') return stoneCard(content.stones[o.id], i);
+    if (o.kind === 'talisman') {
+      const t = content.talismans[o.id];
+      return `<button class="card" data-act="pick" data-arg="${i}"><span class="kind talisman">Talisman</span>
+        <span class="cg" style="color:var(--gold)">${t.glyph}</span><span class="cn">${esc(t.name)}</span><span class="cd">${esc(t.desc)}</span></button>`;
+    }
+    return `<button class="card" data-act="pick" data-arg="${i}"><span class="kind heal">Mondlicht</span>
+      <span class="cg" style="color:var(--teal)">◐</span><span class="cn">+${o.amount} Licht</span>
+      <span class="cd">Jetzt ${run.light}/${run.maxLight}. Heilt den Mond.</span></button>`;
+  });
+  const pouch = run.slots.map((s) => `${content.stones[s.stone].glyph} ${esc(content.stones[s.stone].name)}`).join(' · ');
+  const tal = run.talismans.map((t) => `${content.talismans[t].glyph} ${esc(content.talismans[t].name)}`).join(' · ');
   return `<div class="panel"><div class="sub">${esc(sub)}</div><h2>${esc(title)}</h2><span class="brush"></span>
-    ${healText ? `<p style="text-align:center;color:var(--teal)">${esc(healText)}</p>` : ''}
-    <div class="menu"><button class="btn primary" data-act="nextPond">Weiter</button></div></div>`;
+    ${healText ? `<p style="text-align:center;color:var(--teal);margin:0">${esc(healText)}</p>` : ''}
+    <p style="text-align:center;margin:6px 0 0">Wähle eine Gabe.</p>
+    <div class="cards">${cards.join('')}</div>
+    <p style="font-size:13px;text-align:center;margin:4px 0">Beutel: ${pouch}${tal ? `<br>Talismane: ${tal}` : ''}<br>Licht: ${run.light}/${run.maxLight}</p>
+    <div class="menu" style="margin-top:12px"><button class="btn small" data-act="skip">Keine Gabe nehmen</button></div></div>`;
+}
+
+export function replaceScreen({ run, content, stoneId }) {
+  const st = content.stones[stoneId];
+  const btns = run.slots.map((s, i) => {
+    const o = content.stones[s.stone];
+    return `<button class="btn" data-act="replace" data-arg="${i}">${o.glyph} ${esc(o.name)}<span class="meta">ersetzen</span></button>`;
+  });
+  return `<div class="panel"><div class="sub">Beutel voll</div><h2>${st.glyph} ${esc(st.name)}</h2><span class="brush"></span>
+    <p style="text-align:center">Dein Beutel fasst ${run.slots.length} Steine. Welchen gibst du dem Teich zurück?</p>
+    <div class="slot-pick">${btns.join('')}</div>
+    <div class="menu"><button class="btn small" data-act="back">Abbrechen</button></div></div>`;
 }
