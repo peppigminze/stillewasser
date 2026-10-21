@@ -424,7 +424,10 @@ export function createRenderer(canvas, content) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.globalCompositeOperation = 'lighter';
-    for (const rp of pond.ripples) drawRipple(water, rp, scene.visTick - rp.born, 1, t);
+    for (const rp of pond.ripples) {
+      if (scene.hidden && scene.hidden.has(rp.id)) continue;
+      drawRipple(water, rp, scene.visTick - rp.born, 1, t);
+    }
     for (const rp of scene.expiring || []) {
       const rho = scene.visTick - rp.born;
       const fade = 1 - Math.max(0, Math.min(1, rho - (rp.profile.length - 1)));

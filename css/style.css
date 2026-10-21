@@ -288,3 +288,12 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 .reduced *, .reduced *::before, .reduced *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+
+/* ------------------------------------------------------ juice */
+.slot.ready-pop { animation: ready-pop .6s ease; }
+@keyframes ready-pop { 0% { box-shadow: 0 0 0 0 rgba(255,210,122,.9); } 100% { box-shadow: 0 0 0 14px rgba(255,210,122,0); } }
+.wipe { position: absolute; inset: 0; z-index: 15; pointer-events: none; background: radial-gradient(circle at 50% 50%, rgba(3,4,10,.96) 0 60%, rgba(3,4,10,0) 75%);
+  animation: wipe .8s ease-in-out forwards; }
+@keyframes wipe { 0% { opacity: 0; transform: scale(.2); } 45%, 55% { opacity: 1; transform: scale(2.4); } 100% { opacity: 0; transform: scale(2.6); } }
+.light .pip.gain { animation: pip-gain .7s ease; }
+@keyframes pip-gain { 0% { transform: scale(2); background: var(--teal); box-shadow: 0 0 14px var(--teal); } }

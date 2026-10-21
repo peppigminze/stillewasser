@@ -6,6 +6,7 @@ import { forecast, previewThrow } from '../core/preview.js';
 import { getMods, stoneProfile } from '../core/mods.js';
 import { createRenderer } from './render.js';
 import { createFx } from './fx.js';
+import { createAudio } from './audio.js';
 import { bindInput } from './input.js';
 import * as screens from './screens.js';
 import { serializeRun, deserializeRun } from '../core/save.js';
@@ -24,10 +25,11 @@ export function createApp(content) {
   const canvas = $('pond');
   const renderer = createRenderer(canvas, content);
   const fx = createFx();
+  const audio = createAudio();
   const scene = {
     pond: null, visTick: 0, actors: new Map(), forecast: null, preview: null, ghost: null,
     focus: -1, cursor: -1, tip: -1, moonLight: 1, moonHurt: 0, palette: 'title',
-    showIntents: true, showNext: true, expiring: [], titleRipples: [],
+    showIntents: true, showNext: true, expiring: [], titleRipples: [], hidden: new Set(),
   };
   const ui = {
     run: null, slot: 0, busy: false, speed: 1, baseSpeed: 1, lastType: 'mouse', anchorY: null, prevLight: null, stack: [],
@@ -52,6 +54,7 @@ export function createApp(content) {
   function applySettings() {
     const st = ui.meta.settings;
     fx.reduced = st.reduced;
+    audio.set({ sfx: st.sfx, ambient: st.ambient, volume: st.volume });
     $('app').classList.toggle('reduced', st.reduced);
     ui.baseSpeed = st.fast ? 1.8 : 1;
     ui.speed = ui.baseSpeed;
@@ -190,11 +193,13 @@ export function createApp(content) {
     if (!run || !run.pond) return;
     const pond = run.pond;
     const lost = ui.prevLight !== null && run.light < ui.prevLight;
+    const gained = ui.prevLight !== null && run.light > ui.prevLight;
     const pips = [];
     for (let i = 0; i < run.maxLight; i++) {
       const off = i >= run.light;
       const justLost = lost && off && i < ui.prevLight;
-      pips.push(`<i class="pip${off ? ' off' : ''}${justLost ? ' lost' : ''}"></i>`);
+      const justGained = gained && !off && i >= ui.prevLight;
+      pips.push(`<i class="pip${off ? ' off' : ''}${justLost ? ' lost' : ''}${justGained ? ' gain' : ''}"></i>`);
     }
     ui.prevLight = run.light;
     $('light').innerHTML = pips.join('') + `<span class="num">${run.light}</span>`;
@@ -209,12 +214,14 @@ export function createApp(content) {
 
     $('slots').innerHTML = run.slots.map((s, i) => {
       const st = content.stones[s.stone];
-      const cls = ['slot', i === ui.slot ? 'sel' : '', s.cd > 0 ? 'cd' : '', st.free ? 'free' : ''].join(' ');
+      const popped = ui.prevCds && ui.prevCds[i] > 0 && s.cd === 0 && !pond.turnThrows.length;
+      const cls = ['slot', i === ui.slot ? 'sel' : '', s.cd > 0 ? 'cd' : '', st.free ? 'free' : '', popped ? 'ready-pop' : ''].join(' ');
       return `<button class="${cls}" data-slot="${i}" title="${esc(st.name)}: ${esc(st.desc)}">
         <span class="key">${i + 1}</span><span class="g">${st.glyph}</span>
         <span class="prof">${screens.profileBars(st.profile)}</span><span class="n">${esc(st.name)}</span>
         ${s.cd > 0 ? `<span class="cdv">${s.cd}</span>` : ''}</button>`;
     }).join('');
+    ui.prevCds = run.slots.map((s) => s.cd);
     $('talismans').innerHTML = run.talismans
       .map((t) => `<span class="tal" title="${esc(content.talismans[t].name)}: ${esc(content.talismans[t].desc)}">${content.talismans[t].glyph}</span>`)
       .join('');
@@ -333,16 +340,24 @@ export function createApp(content) {
     if (ev.type === 'invalid') {
       toast(ev.reason);
       fx.addShake(2);
+      audio.sfx.deny();
       return;
     }
     ui.run = res.run;
     const S = renderer.size;
-    const p = renderer.pos(cell);
-    fx.splash(p.x, p.y, S, 1.1);
-    if (ev.mirror >= 0) {
-      const m = renderer.pos(ev.mirror);
-      fx.splash(m.x, m.y, S, 1.1);
-    }
+    const w = window.innerWidth;
+    const from = { x: w / 2 + (ui.slot - 1.5) * Math.min(90, w / 5), y: window.innerHeight - 60 };
+    const land = (target, ids) => {
+      const p = renderer.pos(target);
+      for (const id of ids) scene.hidden.add(id);
+      fx.throwStone(from.x, from.y, p.x, p.y, S, () => {
+        for (const id of ids) scene.hidden.delete(id);
+        fx.splash(p.x, p.y, S, 1.1);
+        audio.sfx.splash((p.x - w / 2) / (w / 2), 1);
+      });
+    };
+    land(cell, ev.ripples.filter((id, i) => i === 0 || ev.mirror < 0 || i > 1));
+    if (ev.mirror >= 0) land(ev.mirror, [ev.ripples[1]]);
     autoSelectSlot();
     scene.focus = ui.lastType === 'mouse' || ui.lastType === 'key' ? cell : -1;
     syncScene();
@@ -393,12 +408,20 @@ export function createApp(content) {
     // A) surges hit
     const resolve = evs.find((e) => e.type === 'resolve');
     if (resolve && resolve.surges.length) {
-      for (const s of resolve.surges) {
-        const p = renderer.pos(s.cell);
-        fx.surge(p.x, p.y, S, s.amp, s.gen);
-      }
-      fx.addShake(1 + Math.min(6, resolve.surges.length * 0.6));
-      await wait(170);
+      // play surges as a rising arpeggio: hostile-hitting ones first, then the rest
+      const occupied = new Set(oldPond.enemies.map((e) => e.cell));
+      const order = resolve.surges.slice().sort((a, b) => (occupied.has(b.cell) - occupied.has(a.cell)) || a.gen - b.gen);
+      const n = order.length;
+      const gap = Math.max(14, Math.min(40, 360 / n));
+      order.forEach((s, i) => {
+        setTimeout(() => {
+          const p = renderer.pos(s.cell);
+          fx.surge(p.x, p.y, S, s.amp, s.gen);
+          if (i < 10) audio.sfx.surge(s.amp, i, s.gen);
+        }, (i * gap) / ui.speed);
+      });
+      fx.addShake(1 + Math.min(6, n * 0.6));
+      await wait(Math.min(420, 120 + n * gap));
     }
     let impact = false;
     for (const e of evs) {
@@ -407,6 +430,7 @@ export function createApp(content) {
         if (a) { a.flash = 1; a.hp = e.hp; }
         const p = renderer.pos(e.cell);
         fx.text(p.x, p.y - S * 0.6, `−${e.dmg}`, e.amp < 0 ? '#c9a6ff' : '#ffd27a', S * 0.75);
+        audio.sfx.hit();
         impact = true;
       } else if (e.type === 'block') {
         const p = renderer.pos(e.cell);
@@ -418,6 +442,7 @@ export function createApp(content) {
         const p = renderer.pos(e.cell);
         fx.ink(p.x, p.y, S, def.look.rim, !!def.boss);
         fx.addShake(def.boss ? 12 : 3);
+        audio.sfx.death(!!def.boss);
         if (a) {
           a.dying = true;
           tween(380, (k) => { a.alpha = 1 - k; a.scale = 1 + k * 0.5; });
@@ -426,6 +451,7 @@ export function createApp(content) {
         if (!e.hostile) fx.text(p.x, p.y - S * 1.2, '+1 ◈', '#7fe3d0', S * 0.6);
         impact = true;
       } else if (e.type === 'heal') {
+        audio.sfx.heal();
         const m = renderer.pos(0);
         fx.text(m.x, m.y - S * 1.3, `+${e.amount} Licht`, '#7fe3d0', S * 0.6);
       }
@@ -454,6 +480,7 @@ export function createApp(content) {
         } else {
           scene.moonHurt = 1;
           fx.addShake(7);
+          audio.sfx.bite();
           if (ui.meta.settings.vibrate && navigator.vibrate) navigator.vibrate(40);
           fx.addFlash('#ff3b2a', 0.18);
           fx.text(m.x, m.y - S * 1.1, `−${e.dmg} Licht`, '#ff6a4a', S * 0.7);
@@ -464,6 +491,7 @@ export function createApp(content) {
         acted = true;
         const p = renderer.pos(e.cell);
         fx.splash(p.x, p.y, S, 1, '#a77bff');
+        audio.sfx.emit();
       } else if (e.type === 'spawn' || e.type === 'hatch') {
         acted = true;
         const id = e.type === 'spawn' ? e.id : e.newId;
@@ -472,6 +500,7 @@ export function createApp(content) {
         scene.actors.set(id, a);
         const p = renderer.pos(e.cell);
         fx.splash(p.x, p.y, S, 0.8, def.look.rim);
+        audio.sfx.spawn();
         tween(300, (k) => { a.scale = k; }, (k) => 1 - Math.pow(1 - k, 3));
       } else if (e.type === 'vanish') {
         const a = scene.actors.get(e.id);
@@ -497,6 +526,14 @@ export function createApp(content) {
     }
   }
 
+  function wipe() {
+    if (ui.meta.settings.reduced) return;
+    const el = document.createElement('div');
+    el.className = 'wipe';
+    $('app').appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  }
+
   function chainPop(x, y, chain) {
     const el = document.createElement('div');
     el.className = 'chain-pop';
@@ -510,14 +547,22 @@ export function createApp(content) {
 
   function afterTurn(res) {
     const run = res.run;
+    if (res.events.some((e) => e.type === 'pondWon')) {
+      const m = renderer.pos(0);
+      fx.bloom(m.x, m.y, renderer.size);
+      scene.moonLight = 1;
+      audio.sfx.pondWon();
+    }
     if (run.mode === 'lost' || run.mode === 'won') {
       bookRunEnd();
-      setTimeout(() => openScreen('runEnd'), 650);
+      if (run.mode === 'won') audio.sfx.runWon();
+      else audio.sfx.runLost();
+      setTimeout(() => openScreen('runEnd'), run.mode === 'won' ? 1400 : 650);
     } else if (run.mode === 'reward') {
       ui.clearHeal = res.events.filter((e) => e.type === 'heal' && e.reason === 'pond').reduce((s, e) => s + e.amount, 0);
       seen('stones', run.reward.options.filter((o) => o.kind === 'stone').map((o) => o.id));
       seen('talismans', run.reward.options.filter((o) => o.kind === 'talisman').map((o) => o.id));
-      setTimeout(() => openScreen('reward'), 500);
+      setTimeout(() => openScreen('reward'), 1200);
     }
   }
 
@@ -686,6 +731,7 @@ export function createApp(content) {
     replaceScreens(null);
     autoSelectSlot();
     fx.clear();
+    wipe();
     syncScene();
     const actStart = res.events.find((e) => e.type === 'actStart');
     if (actStart) {
@@ -829,6 +875,10 @@ export function createApp(content) {
     if (dir === 'left' || dir === 'right') ui.anchorY = keep;
     else ui.anchorY = renderer.pos(best).y;
   }
+
+  window.addEventListener('pointerdown', () => audio.unlock(), { capture: true });
+  window.addEventListener('keydown', () => audio.unlock(), { capture: true });
+  document.addEventListener('click', (e) => { if (e.target.closest('button')) audio.sfx.ui(); });
 
   bindInput(canvas, {
     anyInput() {

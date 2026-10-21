@@ -8,6 +8,7 @@ export function createFx() {
   const texts = [];
   const pillars = [];
   const rings = [];
+  const stones = [];
   let shake = 0;
   let flash = null;
   let reduced = false;
@@ -50,6 +51,23 @@ export function createFx() {
     rings.push({ x, y, r0: s * 0.2, r1: s * (big ? 2.4 : 1.2), life: 0, max: 0.6, color: rim, w: 2 });
   }
 
+  // a thrown stone flying in an arc; onLand fires when it hits the water
+  function throwStone(x0, y0, x1, y1, s, onLand, dur = 0.2) {
+    stones.push({ x0, y0, x1, y1, s, t: 0, dur: reduced ? 0.08 : dur, onLand });
+  }
+
+  // big calm ring + sparkles (pond cleared)
+  function bloom(x, y, s, color = '#ffd27a') {
+    rings.push({ x, y, r0: s, r1: s * 12, life: 0, max: 1.4, color, w: 4 });
+    rings.push({ x, y, r0: s * 0.5, r1: s * 8, life: 0, max: 1.1, color: '#f3ead2', w: 2 });
+    const n = reduced ? 10 : 46;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const v = s * (2 + Math.random() * 7);
+      add({ kind: 'spark', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.7 - s * 2, g: s * 1.5, life: 0, max: 1 + Math.random() * 0.8, size: s * (0.05 + Math.random() * 0.06), color: Math.random() < 0.5 ? color : '#f3ead2' });
+    }
+  }
+
   function text(x, y, str, color = '#ffd27a', size = 18, dur = 1.0) {
     texts.push({ x, y, str, color, size, life: 0, max: dur });
   }
@@ -77,6 +95,14 @@ export function createFx() {
       for (let i = list.length - 1; i >= 0; i--) {
         list[i].life += dt;
         if (list[i].life >= list[i].max) list.splice(i, 1);
+      }
+    }
+    for (let i = stones.length - 1; i >= 0; i--) {
+      const st = stones[i];
+      st.t += dt;
+      if (st.t >= st.dur) {
+        stones.splice(i, 1);
+        if (st.onLand) st.onLand();
       }
     }
     shake *= Math.exp(-9 * dt);
@@ -139,6 +165,22 @@ export function createFx() {
       ctx.fillStyle = hexA(t.color, a);
       ctx.fillText(t.str, t.x, y);
     }
+    for (const st of stones) {
+      const k = Math.min(1, st.t / st.dur);
+      const x = st.x0 + (st.x1 - st.x0) * k;
+      const y = st.y0 + (st.y1 - st.y0) * k - Math.sin(k * Math.PI) * st.s * 3;
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(st.x0 + (st.x1 - st.x0) * k, st.y0 + (st.y1 - st.y0) * k, st.s * 0.18, st.s * 0.07, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#c9c3b2';
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(x, y, st.s * 0.17 * (1.1 - k * 0.3), st.s * 0.13 * (1.1 - k * 0.3), k * 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
     if (flash) {
       const k = flash.life / flash.max;
       ctx.fillStyle = hexA(flash.color, flash.a * (1 - k));
@@ -148,11 +190,14 @@ export function createFx() {
   }
 
   return {
-    splash, surge, ink, text, addShake, addFlash, update, draw,
+    splash, surge, ink, text, addShake, addFlash, update, draw, throwStone, bloom,
     get shake() { return shake; },
     set reduced(v) { reduced = v; },
-    get busy() { return parts.length + texts.length + pillars.length + rings.length > 0; },
-    clear() { parts.length = 0; texts.length = 0; pillars.length = 0; rings.length = 0; shake = 0; flash = null; },
+    get busy() { return parts.length + texts.length + pillars.length + rings.length + stones.length > 0; },
+    clear() {
+      for (const st of stones) if (st.onLand) st.onLand();
+      parts.length = 0; texts.length = 0; pillars.length = 0; rings.length = 0; stones.length = 0; shake = 0; flash = null;
+    },
   };
 }
 

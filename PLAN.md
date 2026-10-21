@@ -13,7 +13,7 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
 - [x] **M4 — Inhalt & Simulation**: Alle V1-Steine/Kreaturen/Talismane, Simulations-Bot (Node),
       Balance-Report, Balance-Anpassungen (BALANCE.md).
 - [x] **M5 — Meta**: Perlen, Schrein (Freischaltungen), Hüter, Schwierigkeitsstufen, Chronik/Statistik, Einstellungen.
-- [ ] **M6 — Gefühl**: Juice-Pass: Partikel, Tweens, Screenshake, Kettenzähler, WebAudio-Synthese, Titel-Animation.
+- [x] **M6 — Gefühl**: Juice-Pass: Partikel, Tweens, Screenshake, Kettenzähler, WebAudio-Synthese, Titel-Animation.
 - [ ] **M7 — Einstieg**: Tutorial/Hinweise (erste 60 s), Tipp-Knopf, Täglicher Teich, Mobile-Feinschliff.
 - [ ] **M8 — Abschluss**: Polish, Code-Review, Edge-Cases, Ladezeit, Speicherstand-Robustheit, README.
 
@@ -41,6 +41,11 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
   Steine, Talismane, Statistik), Einstellungen (Klang, Ambiente, Lautstärke, weniger Bewegung, schnell, Vibration,
   Hinweise, Reset). Lernteich beim allerersten Lauf. 52 Tests.
 
+- **M6 erledigt:** `ui/audio.js` (WebAudio: Platsch mit Panorama, pentatonische Glocken für Wogen als Arpeggio,
+  Biss, Tod, Dunkelwelle, Spawn, UI-Tick, Heilung, Sieg/Niederlage, leises Ambiente mit Drohne/Wasser/Tropfen,
+  Kompressor, Rate-Limits). Juice: Steinflug im Bogen, Wogen gestaffelt, Bloom beim Teichsieg, Tinten-Wipe
+  zwischen Teichen, Slot-„bereit“-Puls, Licht-Pips bei Heilung, Vibration, Animationsbeschleunigung per Tipp.
+
 ## Nächster Schritt
 
-M6: `ui/audio.js` (WebAudio-Synthese: Platsch, Glocken pentatonisch, Biss, Tod, UI, Ambiente), Juice-Pass (Steinflug, Ketten-Musik, Mond-Reaktion, Hit-Stop, Teich-Übergänge).
+M7: Hinweis-System (data/hints.json, kontextuell, einmalig), Tipp-Knopf (ai.suggestThrow), Täglicher Teich, Mobile-Feinschliff.
