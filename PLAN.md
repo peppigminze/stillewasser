@@ -15,7 +15,7 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
 - [x] **M5 — Meta**: Perlen, Schrein (Freischaltungen), Hüter, Schwierigkeitsstufen, Chronik/Statistik, Einstellungen.
 - [x] **M6 — Gefühl**: Juice-Pass: Partikel, Tweens, Screenshake, Kettenzähler, WebAudio-Synthese, Titel-Animation.
 - [x] **M7 — Einstieg**: Tutorial/Hinweise (erste 60 s), Tipp-Knopf, Täglicher Teich, Mobile-Feinschliff.
-- [ ] **M8 — Abschluss**: Polish, Code-Review, Edge-Cases, Ladezeit, Speicherstand-Robustheit, README.
+- [x] **M8 — Abschluss**: Polish, Code-Review, Edge-Cases, Ladezeit, Speicherstand-Robustheit, README.
 
 ## Protokoll
 
@@ -51,6 +51,13 @@ committen, pushen (Branch `claude/stoic-rubin-e2wjfn` und `main`).
   (Seed = Datum, eigener Bestwert, ohne Tipps), Schutzabfrage vor Überschreiben eines Spielstands,
   Querformat-Layout (Steine rechts), kompakter Coach auf kleinen Handys.
 
+- **M8 erledigt:** Code-Review des ganzen Projekts. Behoben: Rennbedingungen beim Wechsel zum Titel während
+  Animationen/verzögerter Screens (Epoch-Zähler), Menü während Animation gesperrt, Banner-Absturz ohne Lauf,
+  Steinflug startet am echten Stein-Knopf (auch im Querformat), Doppeltipp-Zoom auf Knöpfen, `modulepreload`.
+  Geprüft: kompletter Lauf über die echte UI (93 Züge, keine Fehler), kaputter Speicherstand, kleines Handy,
+  Querformat, Ladegröße (~69 KB gzip). README, BACKLOG, DECISIONS aktualisiert.
+
 ## Nächster Schritt
 
-M8: Polish-Durchgang (Game Feel, Edge-Cases, Ladezeit, Speicherstand-Robustheit), Code-Review des ganzen Projekts, README, BACKLOG, finaler Push.
+V1 ist fertig. Einzig offen: GitHub Pages muss einmalig in den Repo-Settings aktiviert werden
+(die API dafür ist in dieser Umgebung gesperrt, siehe DECISIONS.md). Ideen für danach: BACKLOG.md.

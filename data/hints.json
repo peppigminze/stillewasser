@@ -1,7 +1,7 @@
 {
   "start": {
     "title": "Der Mond liegt im Teich",
-    "text": "Schatten kriechen vom Ufer heran und wollen sein Licht fressen. Du greifst nie direkt an – du wirfst Steine. Tippe ein Feld an (zweimal tippen = werfen)."
+    "text": "Schatten kriechen vom Ufer heran und wollen sein Licht fressen. Du greifst nie direkt an – du wirfst Steine. Das türkis markierte Feld ist ein guter erster Wurf: antippen zeigt die Vorschau, nochmal tippen wirft (mit der Maus genügt ein Klick)."
   },
   "afterFirstThrow": {
     "title": "Eine Welle allein ist harmlos",

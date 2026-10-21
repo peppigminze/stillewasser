@@ -35,3 +35,25 @@ Format: Datum · Entscheidung · Begründung. Neueste unten.
   Ketten). Akt III bekommt deshalb eine sichtbare Umweltregel (Nebel). Generisch über `act.mods` in `acts.json`.
 - **Bot-Strategien liegen in `js/core/ai.js`**, damit der Tipp-Knopf im Spiel dieselbe Logik nutzt.
 - Details und Zahlen: `BALANCE.md`.
+
+## M5–M8 — Meta, Gefühl, Einstieg, Abschluss
+
+- **Perlen-Formel** (`rules.json → pearls`): Teiche ×2, Bosse ×4, Kills/8, Irrlichter ×1, Sieg +12, je Mondphase +25 %.
+  Ein schwacher Lauf bringt ~5–10 Perlen, ein guter ~50 → erste Freischaltung nach 1–2 Läufen, alles nach ~8–10.
+- **Freischaltungen erweitern nur den Gaben-Pool**, machen also nicht automatisch stärker, sondern vielfältiger.
+- **Mondphasen** werden nur durch Siege freigeschaltet, nicht im Täglichen Teich.
+- **Täglicher Teich:** Seed `daily-YYYY-MM-DD`, immer Mönch + Grund-Pool (für alle gleich), ohne Tipps/Hinweise.
+- **Lernteich statt Tutorial-Level:** Der allererste Lauf beginnt in einem festen, leichten Teich. Hinweise
+  erscheinen kontextuell (einmalig, abschaltbar, nie mehrere gleichzeitig); in den ersten Zügen markiert das
+  Spiel einen guten Wurf (derselbe Planer wie der Tipp-Knopf).
+- **Hinweise als Daten** (`data/hints.json`), damit Texte ohne Code-Änderung angepasst werden können.
+- **Audio komplett synthetisch** (Glocken mit inharmonischen Obertönen, gefiltertes Rauschen für Wasser),
+  Kompressor auf dem Master, Rate-Limits gegen Klangbrei bei vielen Wogen. AudioContext erst nach der ersten Geste.
+- **Wogen als Arpeggio:** gleichzeitige Wogen werden optisch und akustisch leicht gestaffelt – Ketten klingen
+  wie aufsteigende Melodien.
+- **Querformat auf Handys:** Steine wandern in eine Spalte rechts; der Renderer bekommt seitliche Insets.
+- **Epoch-Zähler im UI-Controller:** Jede verzögerte Aktion (Animation, Screen, Banner) prüft, ob noch derselbe
+  Lauf aktiv ist. Behebt Abstürze beim Wechsel zum Titel während einer Animation.
+- **Kein Wurf auf den Mond, kein Wurf auf Schatten**, ein Stein pro Feld und Zug.
+- **Smoke-Tests mit Playwright** (global installiert) statt eigener Test-Abhängigkeiten; Skripte in `tools/`.
+- **`modulepreload`** für die wichtigsten Module gegen den Import-Wasserfall; ~69 KB gzip, keine externen Requests.

@@ -29,7 +29,7 @@ html, body {
   -webkit-user-select: none; user-select: none;
   overscroll-behavior: none;
 }
-button { font: inherit; color: inherit; cursor: pointer; }
+button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
 button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 [hidden] { display: none !important; }
 
@@ -183,7 +183,7 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .panel p { color: var(--paper-dim); line-height: 1.55; font-size: 15px; }
 .brush { display: block; width: 140px; height: 10px; margin: 8px auto 16px; background: radial-gradient(ellipse at center, var(--vermilion) 0 55%, transparent 60%); border-radius: 50%; opacity: .85; transform: scaleY(.6); }
 
-.title-wrap { text-align: center; margin-top: 8vh; }
+.title-wrap { text-align: center; }
 .title-wrap .stamp { margin: 0 auto 18px; animation: none; }
 .game-title { font-family: var(--serif); font-size: clamp(42px, 11vw, 76px); letter-spacing: .08em; line-height: 1; text-shadow: 0 0 40px rgba(255,240,200,.25); }
 .tagline { color: var(--paper-dim); font-family: var(--serif); font-style: italic; margin: 12px 0 30px; font-size: 16px; }

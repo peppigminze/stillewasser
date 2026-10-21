@@ -1,6 +1,6 @@
 {
   "name": "stille-wasser",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Browser-Game (Vanilla JS, ES-Module, kein Build-Step)",
   "type": "module",

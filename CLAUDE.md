@@ -10,7 +10,8 @@ npm test                 # node --test tests/*.test.mjs (keine Abhängigkeiten n
 npm run check            # Syntax-Check aller JS-Dateien + Content-Validierung
 npm run sim              # Balance-Simulation (schreibt sim/report.md)
 npx http-server -c-1 .   # lokal spielen: http://localhost:8080 (file:// geht nicht wegen fetch)
-node tools/smoke.mjs     # Headless-Browser-Smoketest (Playwright, falls vorhanden) + Screenshots
+node tools/smoke.mjs [--mobile|--viewport=WxH] [--script=tools/play-*.mjs]
+                         # Headless-Browser-Test (globales Playwright), Screenshots in tools/screens/
 ```
 
 `package.json` existiert nur für `"type": "module"` und Skripte — es gibt keine Dependencies.
@@ -45,7 +46,7 @@ js/ui/                Alles mit DOM/Canvas/Audio
 data/*.json           ALLE Inhalte & Balance-Zahlen (Steine, Kreaturen, Talismane, Akte, Hüter, Phasen, Hinweise, Regeln)
 tests/*.test.mjs      node:test — Logik, Content, Determinismus, Speicherstand
 sim/                  Simulations-Bot + Balance-Auswertung
-tools/                Hilfsskripte (Syntax-Check, Smoke-Test)
+tools/                check.mjs (Syntax/Content), smoke.mjs + play-*.mjs (Browser-Szenarien)
 ```
 
 ## Architektur-Regeln
@@ -82,8 +83,13 @@ tools/                Hilfsskripte (Syntax-Check, Smoke-Test)
 - Commits: `M<n>: <kurze Beschreibung>`; nach jedem Milestone `PLAN.md` abhaken.
 - Doku: Entscheidungen → `DECISIONS.md`, Balance → `BALANCE.md`, später → `BACKLOG.md`.
 
+## Debug-Handle
+
+`window.__stille` (nur für Tests/Konsole): `startRun()`, `debugAutoTurn()`, `debugPlanTurn()`,
+`debugWinPond()`, `setSpeed(n)`, `cellPos(cell)`, `run`, `stack`, `scene`.
+
 ## Tests
 
-- `tests/hex.test.mjs`, `field.test.mjs`, `pond.test.mjs`, `run.test.mjs`, `meta.test.mjs`,
-  `content.test.mjs`, `save.test.mjs`, `ai.test.mjs`.
+- `tests/hex.test.mjs`, `field.test.mjs`, `pond.test.mjs`, `run.test.mjs` (inkl. Speicherstand),
+  `meta.test.mjs`, `content.test.mjs`, `ai.test.mjs`.
 - Neue Regel ⇒ neuer Test. Bugfix ⇒ Regressionstest.

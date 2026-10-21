@@ -35,7 +35,13 @@ export function createApp(content) {
   const ui = {
     run: null, slot: 0, busy: false, speed: 1, baseSpeed: 1, lastType: 'mouse', anchorY: null, prevLight: null, stack: [],
     meta: sanitizeMeta(loadJSON(KEYS.meta), content), selKeeper: 'moench', selPhase: 0, shrineTab: 'stone', codexTab: 'creatures',
-    summary: null,
+    summary: null, epoch: 0,
+  };
+  // Every run switch (title, new run, continue) bumps the epoch; async work
+  // (animations, delayed screens) checks it so it never touches a stale run.
+  const later = (ms, fn) => {
+    const epoch = ui.epoch;
+    setTimeout(() => { if (epoch === ui.epoch) fn(); }, ms);
   };
   ui.selKeeper = ui.meta.lastKeeper;
   ui.selPhase = ui.meta.lastPhase;
@@ -332,18 +338,19 @@ export function createApp(content) {
 
   function pondBanner() {
     const run = ui.run;
+    if (!run || !run.pond || run.mode !== 'pond') return;
     const act = content.acts[run.act];
     const pond = run.pond;
     if (pond.kind === 'tutorial') banner('Lernteich', act.name, 'Hüte den Mond');
     else if (pond.kind === 'boss') banner(act.sub, content.enemies[pond.boss].name, 'Boss', true);
     else banner(act.sub, act.name, `Teich ${run.step + 1}`);
-    setTimeout(() => {
-      if (!ui.run || ui.run !== run) return;
+    later(1500, () => {
+      if (ui.run !== run) return;
       if (pond.kind === 'tutorial') hint('start');
       if (pond.kind === 'boss') hint('boss');
       if (content.acts[run.act].rule && run.step === 0) hint('fog');
       if (!run.tutorial || run.act > 0 || run.step > 0) hint('tip');
-    }, 1500);
+    });
   }
 
   // ------------------------------------------------------------- hints
@@ -408,7 +415,6 @@ export function createApp(content) {
     }
     ui.slot = s.slot;
     scene.tip = s.cell;
-    ui.lastType = ui.lastType === 'mouse' ? 'mouse' : 'touch';
     scene.focus = -1;
     setFocus(s.cell);
     renderHud();
@@ -430,7 +436,9 @@ export function createApp(content) {
     ui.run = res.run;
     const S = renderer.size;
     const w = window.innerWidth;
-    const from = { x: w / 2 + (ui.slot - 1.5) * Math.min(90, w / 5), y: window.innerHeight - 60 };
+    const btn = $('slots').children[ev.slot];
+    const r = btn ? btn.getBoundingClientRect() : { left: w / 2, width: 0, top: window.innerHeight - 60, height: 0 };
+    const from = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
     const land = (target, ids) => {
       const p = renderer.pos(target);
       for (const id of ids) scene.hidden.add(id);
@@ -474,7 +482,9 @@ export function createApp(content) {
     scene.ghost = null;
     updateInfo();
     renderHud();
+    const epoch = ui.epoch;
     await animateTurn(old, res);
+    if (epoch !== ui.epoch) return;
     ui.run = res.run;
     ui.busy = false;
     ui.speed = ui.baseSpeed;
@@ -501,11 +511,11 @@ export function createApp(content) {
       const n = order.length;
       const gap = Math.max(14, Math.min(40, 360 / n));
       order.forEach((s, i) => {
-        setTimeout(() => {
+        later((i * gap) / ui.speed, () => {
           const p = renderer.pos(s.cell);
           fx.surge(p.x, p.y, S, s.amp, s.gen);
           if (i < 10) audio.sfx.surge(s.amp, i, s.gen);
-        }, (i * gap) / ui.speed);
+        });
       });
       fx.addShake(1 + Math.min(6, n * 0.6));
       await wait(Math.min(420, 120 + n * gap));
@@ -648,13 +658,15 @@ export function createApp(content) {
       bookRunEnd();
       if (run.mode === 'won') audio.sfx.runWon();
       else audio.sfx.runLost();
-      setTimeout(() => openScreen('runEnd'), run.mode === 'won' ? 1400 : 650);
+      later(run.mode === 'won' ? 1400 : 650, () => openScreen('runEnd'));
     } else if (run.mode === 'reward') {
       ui.clearHeal = res.events.filter((e) => e.type === 'heal' && e.reason === 'pond').reduce((s, e) => s + e.amount, 0);
       seen('stones', run.reward.options.filter((o) => o.kind === 'stone').map((o) => o.id));
       seen('talismans', run.reward.options.filter((o) => o.kind === 'talisman').map((o) => o.id));
-      setTimeout(() => hint('firstReward'), 1300);
-      setTimeout(() => openScreen('reward'), 1200);
+      later(1200, () => {
+        if (ui.run === run && run.mode === 'reward' && !ui.stack.includes('reward')) openScreen('reward');
+        hint('firstReward');
+      });
     }
   }
 
@@ -788,6 +800,8 @@ export function createApp(content) {
   }
 
   function toTitle() {
+    ui.epoch += 1;
+    ui.busy = false;
     hintQueue.length = 0;
     showHint();
     ui.run = null;
@@ -798,6 +812,8 @@ export function createApp(content) {
   }
 
   function startRun(opts = {}) {
+    ui.epoch += 1;
+    ui.busy = false;
     const pool = opts.daily ? defaultPool(content) : poolFor(ui.meta, content);
     const keeper = opts.keeper || ui.selKeeper;
     const phase = opts.daily ? 0 : opts.phase ?? ui.selPhase;
@@ -836,12 +852,14 @@ export function createApp(content) {
     if (actStart) {
       const act = content.acts[ui.run.act];
       banner(act.sub, act.name, act.rule || 'Eine neue Nacht beginnt');
-      setTimeout(() => pondBanner(), 2300);
+      later(2300, () => pondBanner());
     } else pondBanner();
     onStateChange();
   }
 
   function continueRun() {
+    ui.epoch += 1;
+    ui.busy = false;
     const run = savedRun();
     if (!run) {
       toast('Kein Spielstand gefunden.');
@@ -971,9 +989,8 @@ export function createApp(content) {
   });
   $('btn-end').addEventListener('click', () => endTurn());
   $('btn-undo').addEventListener('click', () => undo());
-  $('btn-menu').addEventListener('click', () => { if (ui.run && !ui.stack.length) openScreen('pause'); });
+  $('btn-menu').addEventListener('click', () => { if (ui.run && !ui.stack.length && !ui.busy) openScreen('pause'); });
   $('btn-tip').addEventListener('click', () => useTip());
-  
 
   function moveCursor(dir) {
     const g = renderer.grid;
@@ -1026,7 +1043,7 @@ export function createApp(content) {
       if (cmd === 'menu') {
         const top = ui.stack[ui.stack.length - 1];
         if (top && !MODAL.has(top)) back();
-        else if (ui.run && !ui.stack.length) openScreen('pause');
+        else if (ui.run && !ui.stack.length && !ui.busy) openScreen('pause');
         return true;
       }
       if (ui.stack.length) return false;
@@ -1077,11 +1094,21 @@ export function createApp(content) {
     endTurn();
   }
 
-  applySettings();
-  resize();
-  requestAnimationFrame(frame);
-  $('app').classList.remove('booting');
-  toTitle();
+  // plays one turn through the real UI pipeline using the planner's suggestions
+  function debugPlanTurn() {
+    if (!playable()) return false;
+    for (let i = 0; i < 6; i++) {
+      const sg = suggestThrow(ui.run, content);
+      if (!sg) break;
+      ui.slot = sg.slot;
+      const before = ui.run;
+      tryThrow(sg.cell);
+      if (ui.run === before) break;
+    }
+    endTurn();
+    return true;
+  }
+
   function debugWinPond() {
     if (!playable()) return;
     const r = structuredClone(ui.run);
@@ -1093,8 +1120,16 @@ export function createApp(content) {
     endTurn();
   }
 
+  applySettings();
+  resize();
+  requestAnimationFrame(frame);
+  $('app').classList.remove('booting');
+  toTitle();
+
   return {
     debugWinPond,
+    debugPlanTurn,
+    setSpeed: (v) => { ui.baseSpeed = v; ui.speed = v; },
     cellPos: (c) => renderer.pos(c),
     get run() { return ui.run; },
     get stack() { return ui.stack.slice(); },
